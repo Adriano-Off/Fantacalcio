@@ -1,0 +1,2329 @@
+// CONFIGURAZIONE
+const API_BASE = 'http://localhost/cgi-bin/api.cgi';
+const USE_BACKEND = false;      // ← Non usa CGI
+const USE_JSON_FILES = true;
+const AUTO_CALCULATE = false;
+let currentSortBy = 'punteggio';
+let currentSortDirection = 'desc';
+// Resto del codice...
+
+
+
+
+let rosa = [];
+let classifica = [
+    {nome: "Milan", punti: 20},
+    {nome: "Napoli", punti: 19},
+    {nome: "Inter", punti: 18},
+    {nome: "Roma", punti: 17},
+    {nome: "Juventus", punti: 16},
+    {nome: "Atalanta", punti: 15},
+    {nome: "Bologna", punti: 14},
+    {nome: "Lazio", punti: 13},
+    {nome: "Como", punti: 12},
+    {nome: "Fiorentina", punti: 11},
+    {nome: "Torino", punti: 10},
+    {nome: "Udinese", punti: 9},
+    {nome: "Genoa", punti: 8},
+    {nome: "Cagliari", punti: 7},
+    {nome: "Parma", punti: 6},
+    {nome: "Sassuolo", punti: 5},
+    {nome: "Lecce", punti: 4},
+    {nome: "Cremonese", punti: 3},
+    {nome: "Verona", punti: 2},
+    {nome: "Pisa", punti: 1}
+];
+
+const ruoliMap = ["Portiere", "Difensore", "Centrocampista", "Attaccante"];
+
+// Inizializzazione
+document.addEventListener('DOMContentLoaded', function() {
+    initializeApp();
+    setupEventListeners();
+});
+
+function checkScoreOrigin() {
+    const fromC = rosa.some(p => p.punteggio > 0);
+    
+    if (fromC) {
+        const badge = document.createElement('div');
+        badge.style.cssText = `
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            padding: 0.75rem 1rem;
+            background: var(--success-color);
+            color: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            z-index: 1000;
+            font-size: 0.9rem;
+        `;
+        badge.innerHTML = '<i class="fas fa-check-circle"></i> Punteggi dal programma C';
+        document.body.appendChild(badge);
+    }
+}
+
+// Ricarica automaticamente ogni 5 secondi se rileva modifiche
+let lastLoadTime = 0;
+
+async function autoReload() {
+    if (!USE_JSON_FILES) return;
+    
+    try {
+        const response = await fetch('rosa.json?' + new Date().getTime());
+        const lastModified = response.headers.get('Last-Modified');
+        const currentTime = new Date(lastModified).getTime();
+        
+        if (lastLoadTime > 0 && currentTime > lastLoadTime) {
+            console.log('🔄 Rilevate modifiche, ricarico...');
+            await loadData();
+            await loadClassifica();
+            renderDashboard();
+            renderRosa();
+            showNotification('Dati aggiornati dal programma C', 'success');
+        }
+        
+        lastLoadTime = currentTime;
+    } catch (error) {
+        // File non trovato o errore, ignora
+    }
+}
+
+// Avvia auto-reload ogni 5 secondi
+setInterval(autoReload, 5000);
+
+
+function updateCalcButton() {
+    const calcBtn = document.getElementById('calcPunteggi');
+    
+    if (USE_JSON_FILES && rosa.some(p => p.punteggio > 0)) {
+        // Cambia stile per indicare che i punteggi sono già calcolati
+        calcBtn.style.background = 'var(--text-secondary)';
+        calcBtn.title = 'Punteggi già calcolati dal programma C';
+    } else {
+        calcBtn.style.background = 'var(--primary-color)';
+        calcBtn.title = 'Calcola punteggi';
+    }
+}
+
+async function initializeApp() {
+    await loadData();
+    
+    renderDashboard();
+    renderRosa();
+    renderFormazione();  // ← Questa deve esserci
+    renderClassifica();
+    renderTopGiocatori();
+    
+    if (rosa.length === 0) {
+        showWelcomeMessage();
+    } else {
+        checkScoreOrigin();
+                updateCalcButton(); // ← AGGIUNGI QUESTA RIGA
+ // ← AGGIUNGI QUESTA RIGA
+    }
+    
+    renderDashboard();
+    renderRosa();
+    renderClassifica();
+}
+
+// NUOVA FUNZIONE: Messaggio di benvenuto
+function showWelcomeMessage() {
+    const welcomeHtml = `
+        <div style="text-align: center; padding: 3rem; background: white; border-radius: 12px; margin: 2rem;">
+            <i class="fas fa-futbol" style="font-size: 4rem; color: var(--primary-color); margin-bottom: 1rem;"></i>
+            <h2 style="margin-bottom: 1rem;">Benvenuto nel Gestionale Fantacalcio</h2>
+            <p style="color: var(--text-secondary); margin-bottom: 2rem;">
+                Non ci sono giocatori nella rosa. Per iniziare:
+            </p>
+            <div style="display: grid; gap: 1rem; max-width: 600px; margin: 0 auto;">
+                <div style="padding: 1.5rem; background: var(--light); border-radius: 8px; text-align: left;">
+                    <strong>Opzione 1: Importa CSV</strong>
+                    <p style="margin-top: 0.5rem; color: var(--text-secondary);">
+                        Vai su <strong>"Importa Dati"</strong> e carica il file CSV con le statistiche
+                    </p>
+                </div>
+                <div style="padding: 1.5rem; background: var(--light); border-radius: 8px; text-align: left;">
+                    <strong>Opzione 2: Carica JSON dal programma C</strong>
+                    <p style="margin-top: 0.5rem; color: var(--text-secondary);">
+                        Esegui l'opzione "10. Esporta per web" nel programma C e copia rosa.json qui
+                    </p>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    document.getElementById('topPlayers').innerHTML = welcomeHtml;
+    document.getElementById('infortunati').innerHTML = '<p style="text-align: center; color: var(--text-secondary);">Nessun dato</p>';
+}
+
+
+
+function setupEventListeners() {
+    // Navigation
+    document.querySelectorAll('.nav-item').forEach(item => {
+        item.addEventListener('click', function(e) {
+            e.preventDefault();
+            const section = this.dataset.section;
+            showSection(section);
+            
+            // Update active state
+            document.querySelectorAll('.nav-item').forEach(nav => nav.classList.remove('active'));
+            this.classList.add('active');
+            document.getElementById('searchPlayer').addEventListener('input', function(e) {
+    filterRosa(e.target.value);
+});
+        });
+    });
+    
+    // Menu toggle
+    document.getElementById('menuToggle').addEventListener('click', function() {
+        document.getElementById('sidebar').classList.toggle('active');
+    });
+    
+    // Calcola punteggi
+    document.getElementById('calcPunteggi').addEventListener('click', calcolaPunteggi);
+    
+    // Salva dati
+    document.getElementById('salvaDati').addEventListener('click', salvaDati);
+    
+    // Search
+    document.getElementById('searchPlayer').addEventListener('input', function(e) {
+        filterRosa(e.target.value);
+    });
+    
+    // Tabs
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+            const role = this.dataset.role;
+            filterByRole(role);
+        });
+    });
+    
+    // Modal close
+    document.querySelector('.close-modal').addEventListener('click', closeModal);
+    document.getElementById('playerModal').addEventListener('click', function(e) {
+        if (e.target === this) closeModal();
+    });
+    
+    // File imports
+    document.getElementById('importStats').addEventListener('change', handleStatsImport);
+    document.getElementById('importClassifica').addEventListener('change', handleClassificaImport);
+
+    document.getElementById('resetData').addEventListener('click', function() {
+    if (confirm('Cancellare tutti i dati salvati localmente?')) {
+        localStorage.removeItem('fantasoccerData');
+        rosa = [];
+        renderDashboard();
+        renderRosa();
+        showNotification('Dati locali cancellati', 'success');
+    }
+});
+}
+
+function showSection(sectionId) {
+    // Nascondi tutte le sezioni
+    document.querySelectorAll('.content-section').forEach(section => {
+        section.classList.remove('active');
+    });
+    
+    // Rimuovi active da tutti i menu
+    document.querySelectorAll('.menu-item').forEach(item => {
+        item.classList.remove('active');
+    });
+    
+    // Mostra la sezione richiesta
+    const section = document.getElementById(sectionId);
+    if (section) {
+        section.classList.add('active');
+        
+        // Aggiungi active al menu corrispondente
+        const menuItem = document.querySelector(`[onclick="showSection('${sectionId}')"]`);
+        if (menuItem) {
+            menuItem.classList.add('active');
+        }
+        
+        // Renderizza se necessario
+        if (sectionId === 'topGiocatori') {
+            renderTopGiocatori();
+        } else if (sectionId === 'formazione') {
+            renderFormazione();
+        }
+    } else {
+        console.error('Sezione non trovata:', sectionId);
+    }
+}
+
+
+async function loadData() {
+    if (USE_JSON_FILES) {
+        try {
+            // AGGIUNGI Date.now() per evitare cache
+            const rosaResponse = await fetch('rosa.json?v=' + Date.now());
+            const classificaResponse = await fetch('classifica.json?v=' + Date.now());
+            
+            if (rosaResponse.ok && classificaResponse.ok) {
+                const rosaData = await rosaResponse.json();
+                const classificaData = await classificaResponse.json();
+                
+                rosa = rosaData.players;
+                classifica = classificaData.teams;
+                
+                console.log('✓ Dati caricati da JSON');
+                console.log('✓ Primo giocatore:', rosa[0]);
+                console.log('✓ Stats primo giocatore:', rosa[0].stats); // ← AGGIUNGI QUESTO
+                
+                salvaDati();
+                return true;
+            }
+        } catch (error) {
+            console.error('Errore caricamento JSON:', error);
+        }
+    }
+    
+    // Fallback a localStorage
+    const savedRosa = localStorage.getItem('fantacalcio_rosa');
+    if (savedRosa) {
+        rosa = JSON.parse(savedRosa);
+        console.log('✓ Dati caricati da localStorage');
+        console.log('✓ Stats primo giocatore:', rosa[0].stats); // ← AGGIUNGI QUESTO
+    }
+    
+    const savedClassifica = localStorage.getItem('fantacalcio_classifica');
+    if (savedClassifica) {
+        classifica = JSON.parse(savedClassifica);
+    }
+    
+    return false;
+}
+
+
+function showLoadJsonPrompt() {
+    const prompt = document.createElement('div');
+    prompt.style.cssText = `
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: white;
+        padding: 2rem;
+        border-radius: 12px;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+        z-index: 9999;
+        text-align: center;
+    `;
+    prompt.innerHTML = `
+        <h2 style="margin-bottom: 1rem;">Carica i dati</h2>
+        <p style="margin-bottom: 1.5rem; color: var(--text-secondary);">
+            Seleziona rosa.json dal programma C
+        </p>
+        <button onclick="document.getElementById('loadRosaJson').click()" 
+                class="btn btn-primary">
+            <i class="fas fa-file-import"></i> Carica rosa.json
+        </button>
+    `;
+    document.body.appendChild(prompt);
+    
+    document.getElementById('loadRosaJson').addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        
+        const reader = new FileReader();
+        reader.onload = function(event) {
+            try {
+                const data = JSON.parse(event.target.result);
+                rosa = data.players || [];
+                localStorage.setItem('fantasoccerData', JSON.stringify(rosa));
+                prompt.remove();
+                renderDashboard();
+                renderRosa();
+                showNotification(`✓ ${rosa.length} giocatori caricati!`, 'success');
+            } catch (error) {
+                showNotification('Errore nel caricamento JSON', 'error');
+            }
+        };
+        reader.readAsText(file);
+    });
+}
+
+
+async function loadClassifica() {
+    if (USE_JSON_FILES) {
+        try {
+            const response = await fetch('classifica.json?' + new Date().getTime());
+            if (response.ok) {
+                const data = await response.json();
+                classifica = data.teams;
+                console.log('✓ Classifica caricata da classifica.json (programma C)');
+                return;
+            }
+        } catch (error) {
+            console.log('⚠ File classifica.json non trovato, uso default');
+        }
+    }
+    // Usa classifica di default già definita
+}
+
+
+function generateSampleData() {
+    // Array vuoto - forza l'uso di file JSON o localStorage
+    return [];
+}
+
+
+// Continue in next part...
+// Dashboard Rendering
+function renderDashboard() {
+    // Update stats
+    const stats = {
+        portieri: rosa.filter(p => p.ruolo === 0).length,
+        difensori: rosa.filter(p => p.ruolo === 1).length,
+        centrocampisti: rosa.filter(p => p.ruolo === 2).length,
+        attaccanti: rosa.filter(p => p.ruolo === 3).length
+    };
+    
+    document.getElementById('numPortieri').textContent = stats.portieri;
+    document.getElementById('numDifensori').textContent = stats.difensori;
+    document.getElementById('numCentrocampisti').textContent = stats.centrocampisti;
+    document.getElementById('numAttaccanti').textContent = stats.attaccanti;
+    
+    // Top 5 players
+    const topPlayers = [...rosa]
+        .filter(p => p.disponibile)
+        .sort((a, b) => b.punteggio - a.punteggio)
+        .slice(0, 5);
+    
+    if (topPlayers.length === 0 && rosa.length > 0) {
+        document.getElementById('topPlayers').innerHTML = 
+            '<p style="text-align: center; padding: 2rem; color: var(--text-secondary);">Calcola i punteggi per vedere i top giocatori</p>';
+    } else if (rosa.length === 0) {
+        showWelcomeMessage();
+    } else {
+        const topPlayersHtml = topPlayers.map((player, index) => `
+            <div class="player-item" onclick="showPlayerDetails('${player.nome}')">
+                <div class="player-info">
+                    <div class="player-avatar">${index + 1}</div>
+                    <div>
+                        <div class="player-name">${player.nome}</div>
+                        <div class="player-role">${ruoliMap[player.ruolo]} - ${player.squadra}</div>
+                    </div>
+                </div>
+                <div class="player-score">${player.punteggio.toFixed(2)}</div>
+            </div>
+        `).join('');
+        document.getElementById('topPlayers').innerHTML = topPlayersHtml;
+    }
+    
+    // Injured players
+    const infortunati = rosa.filter(p => p.infortunato);
+    const infortunatiHtml = infortunati.length > 0 ? infortunati.map(player => `
+        <div class="player-item">
+            <div class="player-info">
+                <div class="player-avatar" style="background: var(--danger-color);">
+                    <i class="fas fa-plus"></i>
+                </div>
+                <div>
+                    <div class="player-name">${player.nome}</div>
+                    <div class="player-role">${ruoliMap[player.ruolo]} - ${player.squadra}</div>
+                </div>
+            </div>
+            <span class="badge badge-danger">Infortunato</span>
+        </div>
+    `).join('') : '<p style="text-align: center; color: var(--text-secondary);">Nessun infortunato</p>';
+    
+    document.getElementById('infortunati').innerHTML = infortunatiHtml;
+}
+
+// Rosa Rendering
+function renderRosa() {
+    const tbody = document.getElementById('rosaTableBody');
+    
+    if (!tbody) {
+        console.error('Elemento rosaTableBody non trovato!');
+        return;
+    }
+    
+    if (rosa.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="9" style="text-align: center; padding: 3rem;">
+                    <div style="display: flex; flex-direction: column; align-items: center; gap: 1rem;">
+                        <i class="fas fa-users" style="font-size: 3rem; color: var(--text-secondary);"></i>
+                        <p style="color: var(--text-secondary); margin: 0;">Nessun giocatore nella rosa.</p>
+                        <button class="btn btn-primary" onclick="showSection('import')">
+                            <i class="fas fa-file-import"></i> Importa Dati
+                        </button>
+                    </div>
+                </td>
+            </tr>
+        `;
+        return;
+    }
+    
+    // APPLICA ORDINAMENTO
+    const sortedRosa = [...rosa].sort((a, b) => {
+        let valueA, valueB;
+        
+        switch(currentSortBy) {
+            case 'punteggio':
+                valueA = a.punteggio || 0;
+                valueB = b.punteggio || 0;
+                break;
+            case 'ruolo':
+                if (a.ruolo === b.ruolo) {
+                    return (b.punteggio || 0) - (a.punteggio || 0);
+                }
+                valueA = a.ruolo;
+                valueB = b.ruolo;
+                break;
+            case 'nome':
+                valueA = (a.nome || '').toLowerCase();
+                valueB = (b.nome || '').toLowerCase();
+                break;
+            case 'squadra':
+                valueA = (a.squadra || '').toLowerCase();
+                valueB = (b.squadra || '').toLowerCase();
+                break;
+            case 'titolarita':
+                valueA = a.titolarita || 0;
+                valueB = b.titolarita || 0;
+                break;
+            default:
+                valueA = a.punteggio || 0;
+                valueB = b.punteggio || 0;
+        }
+        
+        if (currentSortDirection === 'asc') {
+            return valueA > valueB ? 1 : valueA < valueB ? -1 : 0;
+        } else {
+            return valueA < valueB ? 1 : valueA > valueB ? -1 : 0;
+        }
+    });
+    
+    const html = sortedRosa.map((player, index) => `
+        <tr onclick="showPlayerDetails('${player.nome}')">
+            <td>
+                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                    <span style="font-size: 0.9rem; width: 25px; color: var(--text-secondary); font-weight: 600;">#${index + 1}</span>
+                    <strong>${player.nome}</strong>
+                </div>
+            </td>
+            <td><span class="badge badge-info">${ruoliMap[player.ruolo]}</span></td>
+            <td>
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    <i class="fas fa-shield-alt" style="color: #3b82f6; font-size: 0.9rem;"></i>
+                    <span>${player.squadra}</span>
+                </div>
+            </td>
+            <td><span class="score-highlight">${(player.punteggio || 0).toFixed(2)}</span></td>
+            <td>
+                <div class="progress-bar-container">
+                    <div class="progress-bar">
+                        <div class="progress-bar-fill" style="width: ${player.titolarita}%; background: linear-gradient(90deg, #10b981, #059669);"></div>
+                    </div>
+                    <span style="font-size: 0.9rem; font-weight: 600; min-width: 40px;">${player.titolarita}%</span>
+                </div>
+            </td>
+            <td><span style="font-weight: 500;">${player.avversario}</span></td>
+            <td>
+                <div class="progress-bar-container">
+                    <div class="progress-bar">
+                        <div class="progress-bar-fill" style="width: ${(player.difficolta / 20) * 100}%; background: ${
+                            player.difficolta > 15 ? 'linear-gradient(90deg, #ef4444, #dc2626)' : 
+                            player.difficolta > 10 ? 'linear-gradient(90deg, #f59e0b, #d97706)' : 
+                            'linear-gradient(90deg, #10b981, #059669)'
+                        };"></div>
+                    </div>
+                    <span style="font-size: 0.9rem; font-weight: 600; min-width: 40px;">${player.difficolta}/20</span>
+                </div>
+            </td>
+            <td>
+                ${player.infortunato ? 
+                    '<span class="badge badge-danger"><i class="fas fa-heartbeat"></i> Infortunato</span>' : 
+                  player.disponibile ? 
+                    '<span class="badge badge-success"><i class="fas fa-check-circle"></i> OK</span>' : 
+                    '<span class="badge badge-warning"><i class="fas fa-exclamation-circle"></i> N/D</span>'}
+            </td>
+            <td>
+                <button class="btn btn-primary" style="padding: 0.6rem 1rem; font-size: 0.85rem; white-space: nowrap;" 
+                        onclick="event.stopPropagation(); showPlayerDetails('${player.nome}')">
+                    <i class="fas fa-chart-line"></i> Dettagli
+                </button>
+            </td>
+        </tr>
+    `).join('');
+    
+    tbody.innerHTML = html;
+    updateSortButtons();
+}
+
+
+// Filter Rosa
+function filterRosa(searchTerm) {
+    const filtered = rosa.filter(player => 
+        player.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        player.squadra.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+    
+    // APPLICA LO STESSO ORDINAMENTO
+    const sorted = filtered.sort((a, b) => {
+        // ... stesso codice di ordinamento di renderRosa ...
+        let valueA, valueB;
+        
+        switch(currentSortBy) {
+            case 'punteggio':
+                valueA = a.punteggio;
+                valueB = b.punteggio;
+                break;
+            case 'ruolo':
+                if (a.ruolo === b.ruolo) {
+                    return b.punteggio - a.punteggio;
+                }
+                valueA = a.ruolo;
+                valueB = b.ruolo;
+                break;
+            case 'nome':
+                valueA = a.nome.toLowerCase();
+                valueB = b.nome.toLowerCase();
+                break;
+            case 'squadra':
+                valueA = a.squadra.toLowerCase();
+                valueB = b.squadra.toLowerCase();
+                break;
+            case 'titolarita':
+                valueA = a.titolarita;
+                valueB = b.titolarita;
+                break;
+            default:
+                valueA = a.punteggio;
+                valueB = b.punteggio;
+        }
+        
+        if (currentSortDirection === 'asc') {
+            return valueA > valueB ? 1 : valueA < valueB ? -1 : 0;
+        } else {
+            return valueA < valueB ? 1 : valueA > valueB ? -1 : 0;
+        }
+    });
+    
+    const tbody = document.getElementById('rosaTableBody');
+    const html = sorted.map(player => `
+        <!-- ... stesso HTML di renderRosa ... -->
+    `).join('');
+    
+    tbody.innerHTML = html || '<tr><td colspan="9" style="text-align: center;">Nessun giocatore trovato</td></tr>';
+    updateSortButtons();
+}
+
+
+// Formazione Rendering
+async function renderFormazione() {
+    console.log('🔄 Rendering formazione...');
+    
+    // Prova a caricare formazione pre-calcolata
+    if (USE_JSON_FILES) {
+        try {
+            const response = await fetch('formazione.json?' + Date.now());
+            if (response.ok) {
+                const data = await response.json();
+                console.log('✓ Formazione caricata da JSON');
+                renderFormazioneFromJSON(data);
+                return;
+            }
+        } catch (error) {
+            console.log('⚠️ formazione.json non trovato, uso calcolo locale');
+        }
+    }
+    
+    // Calcolo locale
+    renderFormazioneLocale();
+}
+
+function renderFormazioneLocale() {
+    const container = document.getElementById('formazioneContainer');
+    
+    if (!container) {
+        console.error('❌ Elemento formazioneContainer non trovato!');
+        return;
+    }
+    
+    console.log('📋 Rosa disponibile:', rosa.length, 'giocatori');
+    
+    if (!rosa || rosa.length === 0) {
+        container.innerHTML = `
+            <div class="card">
+                <div class="card-body" style="text-align: center; padding: 3rem;">
+                    <i class="fas fa-users" style="font-size: 3rem; color: var(--text-secondary); margin-bottom: 1rem;"></i>
+                    <h3>Nessun giocatore disponibile</h3>
+                    <p style="color: var(--text-secondary);">Carica prima i dati della rosa</p>
+                </div>
+            </div>
+        `;
+        return;
+    }
+    
+    // Dividi per ruolo e ordina per punteggio
+    const portieri = rosa.filter(p => p.ruolo === 0 && p.disponibile && !p.infortunato)
+                         .sort((a, b) => (b.punteggio || 0) - (a.punteggio || 0));
+    const difensori = rosa.filter(p => p.ruolo === 1 && p.disponibile && !p.infortunato)
+                          .sort((a, b) => (b.punteggio || 0) - (a.punteggio || 0));
+    const centrocampisti = rosa.filter(p => p.ruolo === 2 && p.disponibile && !p.infortunato)
+                               .sort((a, b) => (b.punteggio || 0) - (a.punteggio || 0));
+    const attaccanti = rosa.filter(p => p.ruolo === 3 && p.disponibile && !p.infortunato)
+                           .sort((a, b) => (b.punteggio || 0) - (a.punteggio || 0));
+    
+    console.log(`👥 Disponibili - P:${portieri.length} D:${difensori.length} C:${centrocampisti.length} A:${attaccanti.length}`);
+    
+    // Verifica se ci sono abbastanza giocatori
+    if (!portieri[0] || difensori.length < 3 || centrocampisti.length < 5 || attaccanti.length < 2) {
+        container.innerHTML = `
+            <div class="card">
+                <div class="card-body" style="text-align: center; padding: 3rem;">
+                    <i class="fas fa-exclamation-triangle" style="font-size: 3rem; color: var(--warning-color); margin-bottom: 1rem;"></i>
+                    <h3>Non ci sono abbastanza giocatori disponibili</h3>
+                    <p style="color: var(--text-secondary);">
+                        <strong>Serve formazione 3-5-2:</strong><br>
+                        1 Portiere, 3 Difensori, 5 Centrocampisti, 2 Attaccanti
+                    </p>
+                    <p style="margin-top: 1rem; padding: 1rem; background: #fef3c7; border-radius: 8px;">
+                        <strong>Disponibili ora:</strong><br>
+                        Portieri: ${portieri.length}, 
+                        Difensori: ${difensori.length}, 
+                        Centrocampisti: ${centrocampisti.length}, 
+                        Attaccanti: ${attaccanti.length}
+                    </p>
+                </div>
+            </div>
+        `;
+        return;
+    }
+    
+    // Formazione 3-5-2
+    const formazione = {
+        portiere: portieri[0],
+        difensori: difensori.slice(0, 3),
+        centrocampisti: centrocampisti.slice(0, 5),
+        attaccanti: attaccanti.slice(0, 2)
+    };
+    
+    // Calcola punteggio totale
+    const punteggioTotale = [
+        formazione.portiere,
+        ...formazione.difensori,
+        ...formazione.centrocampisti,
+        ...formazione.attaccanti
+    ].reduce((sum, p) => sum + (p?.punteggio || 0), 0);
+    
+    console.log('✅ Formazione calcolata. Punteggio:', punteggioTotale.toFixed(2));
+    
+    // Template giocatore
+    const renderPlayer = (player) => {
+        if (!player) return '<div style="opacity: 0.3;">Nessuno</div>';
+        return `
+            <div class="campo-player" onclick="showPlayerDetails('${player.nome}')" 
+                 style="cursor: pointer; background: white; padding: 1rem; border-radius: 8px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.2); transition: all 0.2s; min-width: 120px;" 
+                 onmouseover="this.style.transform='scale(1.05)'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.3)'" 
+                 onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='0 2px 8px rgba(0,0,0,0.2)'">
+                <strong style="display: block; color: #111827; font-size: 0.9rem; margin-bottom: 0.25rem;">${player.nome}</strong>
+                <span style="color: var(--text-secondary); font-size: 0.75rem;">${player.squadra}</span>
+                <div style="margin-top: 0.5rem; padding: 0.3rem 0.6rem; background: linear-gradient(135deg, var(--primary-color), #7c3aed); color: white; border-radius: 4px; font-weight: 700; font-size: 0.9rem;">
+                    ${(player.punteggio || 0).toFixed(1)}
+                </div>
+            </div>
+        `;
+    };
+    
+    // Render HTML
+    const html = `
+        <div style="background: linear-gradient(135deg, var(--primary-color), #2563eb); color: white; padding: 2rem; border-radius: 12px; margin-bottom: 2rem; text-align: center;">
+            <h2 style="margin: 0 0 0.5rem; font-size: 2rem;"><i class="fas fa-tactics"></i> Formazione Ottimale 3-5-2</h2>
+            <p style="margin: 0; font-size: 1.5rem; font-weight: 700;">Punteggio Totale: ${punteggioTotale.toFixed(2)}</p>
+        </div>
+        
+        <div class="card">
+            <div class="campo-container" style="background: linear-gradient(180deg, #16a34a, #15803d); padding: 3rem 2rem; border-radius: 12px;">
+                <div style="display: flex; flex-direction: column; gap: 3rem;">
+                    
+                    <!-- Attaccanti -->
+                    <div style="display: flex; justify-content: center; gap: 4rem;">
+                        ${formazione.attaccanti.map(renderPlayer).join('')}
+                    </div>
+                    
+                    <!-- Centrocampisti -->
+                    <div style="display: flex; justify-content: center; gap: 2rem; flex-wrap: wrap;">
+                        ${formazione.centrocampisti.map(renderPlayer).join('')}
+                    </div>
+                    
+                    <!-- Difensori -->
+                    <div style="display: flex; justify-content: center; gap: 4rem;">
+                        ${formazione.difensori.map(renderPlayer).join('')}
+                    </div>
+                    
+                    <!-- Portiere -->
+                    <div style="display: flex; justify-content: center;">
+                        ${renderPlayer(formazione.portiere)}
+                    </div>
+                    
+                </div>
+            </div>
+        </div>
+    `;
+    
+    container.innerHTML = html;
+}
+
+function renderFormazioneFromJSON(data) {
+    // Placeholder per formazione da JSON pre-calcolata
+    renderFormazioneLocale();
+}
+
+function renderFormationPlayers(players) {
+    return players.map(player => `
+        <div class="formation-player" onclick="showPlayerDetails('${player.nome}')">
+            <div class="formation-player-name">${player.nome}</div>
+            <div class="formation-player-score">${player.punteggio.toFixed(2)}</div>
+            <div style="font-size: 0.8rem; color: var(--text-secondary);">${player.squadra}</div>
+        </div>
+    `).join('');
+}
+function renderFormazioneLocale() {
+    const disponibili = rosa.filter(p => p.disponibile && !p.infortunato);
+    
+    // Ordina per punteggio decrescente per ruolo
+    const portieri = disponibili.filter(p => p.ruolo === 0).sort((a, b) => b.punteggio - a.punteggio);
+    const difensori = disponibili.filter(p => p.ruolo === 1).sort((a, b) => b.punteggio - a.punteggio);
+    const centrocampisti = disponibili.filter(p => p.ruolo === 2).sort((a, b) => b.punteggio - a.punteggio);
+    const attaccanti = disponibili.filter(p => p.ruolo === 3).sort((a, b) => b.punteggio - a.punteggio);
+    
+    // Moduli da provare (identici al programma C)
+    const moduli = [
+        {dif: 3, cen: 4, att: 3},
+        {dif: 3, cen: 5, att: 2},
+        {dif: 4, cen: 3, att: 3},
+        {dif: 4, cen: 4, att: 2},
+        {dif: 4, cen: 5, att: 1},
+        {dif: 5, cen: 3, att: 2},
+        {dif: 5, cen: 4, att: 1}
+    ];
+    
+    let punteggioMigliore = -1;
+    let moduloMigliore = null;
+    
+    // Prova ogni modulo
+    moduli.forEach(modulo => {
+        // Verifica che ci siano abbastanza giocatori
+        if (difensori.length < modulo.dif || 
+            centrocampisti.length < modulo.cen || 
+            attaccanti.length < modulo.att) {
+            return; // Salta questo modulo
+        }
+        
+        // Calcola punteggio totale per questo modulo
+        let punteggio = 0;
+        
+        // Portiere (sempre 1)
+        if (portieri.length > 0) {
+            punteggio += portieri[0].punteggio;
+        }
+        
+        // Difensori
+        for (let i = 0; i < modulo.dif; i++) {
+            punteggio += difensori[i].punteggio;
+        }
+        
+        // Centrocampisti
+        for (let i = 0; i < modulo.cen; i++) {
+            punteggio += centrocampisti[i].punteggio;
+        }
+        
+        // Attaccanti
+        for (let i = 0; i < modulo.att; i++) {
+            punteggio += attaccanti[i].punteggio;
+        }
+        
+        // Se questo modulo è migliore, salvalo
+        if (punteggio > punteggioMigliore) {
+            punteggioMigliore = punteggio;
+            moduloMigliore = modulo;
+        }
+    });
+    
+    // Se non c'è un modulo valido, usa il default
+    if (!moduloMigliore) {
+        moduloMigliore = {dif: 4, cen: 4, att: 2};
+    }
+    
+    // Seleziona i giocatori per il modulo migliore
+    const formazionePortieri = portieri.slice(0, 1);
+    const formazioneDifensori = difensori.slice(0, moduloMigliore.dif);
+    const formazioneCentrocampisti = centrocampisti.slice(0, moduloMigliore.cen);
+    const formazioneAttaccanti = attaccanti.slice(0, moduloMigliore.att);
+    
+    // Mostra il modulo e punteggio totale
+    const punteggioMedio = punteggioMigliore / 11;
+    const infoModulo = `
+        <div style="text-align: center; margin-bottom: 2rem; padding: 1.5rem; background: white; border-radius: 12px;">
+            <div style="display: inline-block; padding: 0.5rem 1rem; background: var(--warning-color); color: white; border-radius: 8px; margin-bottom: 1rem;">
+                <i class="fas fa-exclamation-triangle"></i> Formazione calcolata localmente
+            </div>
+            <h2 style="margin-bottom: 1rem;">Modulo: ${moduloMigliore.dif}-${moduloMigliore.cen}-${moduloMigliore.att}</h2>
+            <div style="display: flex; gap: 2rem; justify-content: center;">
+                <div>
+                    <p style="color: var(--text-secondary); margin-bottom: 0.25rem;">Punteggio Totale</p>
+                    <p style="font-size: 2rem; font-weight: 700; color: var(--primary-color);">${punteggioMigliore.toFixed(2)}</p>
+                </div>
+                <div>
+                    <p style="color: var(--text-secondary); margin-bottom: 0.25rem;">Punteggio Medio</p>
+                    <p style="font-size: 2rem; font-weight: 700; color: var(--success-color);">${punteggioMedio.toFixed(2)}</p>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Inserisci le informazioni del modulo prima del campo
+    const formazioneContainer = document.querySelector('.formation-container');
+    if (formazioneContainer) {
+        const existingInfo = formazioneContainer.querySelector('.modulo-info');
+        if (existingInfo) {
+            existingInfo.remove();
+        }
+        const infoDiv = document.createElement('div');
+        infoDiv.className = 'modulo-info';
+        infoDiv.innerHTML = infoModulo;
+        formazioneContainer.insertBefore(infoDiv, formazioneContainer.firstChild);
+    }
+    
+    // Renderizza i giocatori
+    document.getElementById('formazionePortieri').innerHTML = renderFormationPlayers(formazionePortieri);
+    document.getElementById('formazioneDifensori').innerHTML = renderFormationPlayers(formazioneDifensori);
+    document.getElementById('formazioneCentrocampisti').innerHTML = renderFormationPlayers(formazioneCentrocampisti);
+    document.getElementById('formazioneAttaccanti').innerHTML = renderFormationPlayers(formazioneAttaccanti);
+}
+
+
+// Role Players Grid
+function renderRolePlayersGrid(role) {
+    const filtered = role === 'all' ? rosa : rosa.filter(p => p.ruolo === parseInt(role));
+    const sorted = [...filtered].sort((a, b) => b.punteggio - a.punteggio);
+    
+    const html = sorted.map(player => `
+        <div class="player-card" onclick="showPlayerDetails('${player.nome}')">
+            <div class="player-card-header">
+                <div>
+                    <div class="player-card-name">${player.nome}</div>
+                    <span class="badge badge-info">${ruoliMap[player.ruolo]}</span>
+                </div>
+                <div class="player-card-score">${player.punteggio.toFixed(2)}</div>
+            </div>
+            <div class="player-card-info">
+                <div><i class="fas fa-jersey"></i> ${player.squadra}</div>
+                <div><i class="fas fa-percentage"></i> Titolarità: ${player.titolarita}%</div>
+                <div><i class="fas fa-crosshairs"></i> vs ${player.avversario} (Diff. ${player.difficolta})</div>
+                <div>
+                    ${player.infortunato ? '<i class="fas fa-heartbeat"></i> <span style="color: var(--danger-color);">Infortunato</span>' : 
+                      player.disponibile ? '<i class="fas fa-check-circle"></i> <span style="color: var(--success-color);">Disponibile</span>' : 
+                      '<i class="fas fa-times-circle"></i> <span style="color: var(--warning-color);">Non disponibile</span>'}
+                </div>
+            </div>
+        </div>
+    `).join('');
+    
+    document.getElementById('rolePlayersGrid').innerHTML = html || '<p style="text-align: center; padding: 2rem;">Nessun giocatore in questa categoria</p>';
+}
+
+function filterByRole(role) {
+    renderRolePlayersGrid(role);
+}
+
+// Classifica Rendering
+function renderClassifica() {
+    const tbody = document.getElementById('classificaTableBody');
+    const html = classifica.map((squadra, index) => {
+        let badgeClass = 'badge-success';
+        if (index > 16) badgeClass = 'badge-danger';
+        else if (index > 12) badgeClass = 'badge-warning';
+        
+        return `
+            <tr>
+                <td><strong>${index + 1}</strong></td>
+                <td><strong>${squadra.nome}</strong></td>
+                <td>${squadra.punti}</td>
+                <td>
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        <div style="flex: 1; background: var(--light); height: 8px; border-radius: 4px; overflow: hidden;">
+                            <div style="width: ${(squadra.punti / 20) * 100}%; height: 100%; background: var(--primary-color);"></div>
+                        </div>
+                        <span class="badge ${badgeClass}">${squadra.punti}/20</span>
+                    </div>
+                </td>
+            </tr>
+        `;
+    }).join('');
+    
+    tbody.innerHTML = html;
+}
+
+// Player Details Modal
+function showPlayerDetails(nomeGiocatore) {
+    const player = rosa.find(p => p.nome === nomeGiocatore);
+    if (!player) return;
+    
+    const forza = classifica.find(s => s.nome === player.squadra)?.punti || 10;
+    const stats = player.stats || {};
+    
+    const modalHtml = `
+        <div style="display: grid; gap: 1.5rem;">
+            <!-- Info Principali -->
+            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem;">
+                <div class="stat-box">
+                    <i class="fas fa-user-tag" style="color: var(--primary-color); font-size: 1.5rem;"></i>
+                    <p style="color: var(--text-secondary); margin: 0.5rem 0 0.25rem;">Ruolo</p>
+                    <p style="font-size: 1.2rem; font-weight: 700; margin: 0;">${ruoliMap[player.ruolo]}</p>
+                </div>
+                <div class="stat-box">
+                    <i class="fas fa-shield-alt" style="color: var(--primary-color); font-size: 1.5rem;"></i>
+                    <p style="color: var(--text-secondary); margin: 0.5rem 0 0.25rem;">Squadra</p>
+                    <p style="font-size: 1.2rem; font-weight: 700; margin: 0;">${player.squadra}</p>
+                    <p style="color: var(--text-secondary); font-size: 0.85rem;">Forza: ${forza}/20</p>
+                </div>
+                <div class="stat-box" style="background: linear-gradient(135deg, var(--primary-color), #7c3aed);">
+                    <i class="fas fa-star" style="color: white; font-size: 1.5rem;"></i>
+                    <p style="color: rgba(255,255,255,0.9); margin: 0.5rem 0 0.25rem;">Punteggio</p>
+                    <p style="font-size: 2rem; font-weight: 700; margin: 0; color: white;">${player.punteggio.toFixed(2)}</p>
+                </div>
+                <div class="stat-box">
+                    <i class="fas fa-percentage" style="color: var(--success-color); font-size: 1.5rem;"></i>
+                    <p style="color: var(--text-secondary); margin: 0.5rem 0 0.25rem;">Titolarità</p>
+                    <div style="margin-top: 0.5rem;">
+                        <div style="width: 100%; height: 12px; background: #e5e7eb; border-radius: 6px; overflow: hidden;">
+                            <div style="width: ${player.titolarita}%; height: 100%; background: var(--success-color); transition: width 0.3s;"></div>
+                        </div>
+                        <p style="font-size: 1.2rem; font-weight: 700; margin: 0.5rem 0 0;">${player.titolarita}%</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Statistiche Dettagliate -->
+            <div style="padding: 1.5rem; background: linear-gradient(135deg, #f0f9ff, white); border-radius: 12px; border: 2px solid var(--primary-color);">
+                <h3 style="margin-bottom: 1rem; color: var(--primary-color);">
+                    <i class="fas fa-chart-bar"></i> Statistiche Stagionali
+                </h3>
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem;">
+                    <div class="mini-stat">
+                        <i class="fas fa-futbol"></i>
+                        <span class="mini-stat-label">Goals</span>
+                        <span class="mini-stat-value">${stats.goals || 0}</span>
+                    </div>
+                    <div class="mini-stat">
+                        <i class="fas fa-hands-helping"></i>
+                        <span class="mini-stat-label">Assist</span>
+                        <span class="mini-stat-value">${stats.assist || 0}</span>
+                    </div>
+                    <div class="mini-stat">
+                        <i class="fas fa-clock"></i>
+                        <span class="mini-stat-label">Minuti</span>
+                        <span class="mini-stat-value">${stats.minuti || 0}'</span>
+                    </div>
+                    ${player.ruolo === 0 ? `
+                        <div class="mini-stat">
+                            <i class="fas fa-shield"></i>
+                            <span class="mini-stat-label">Clean Sheet</span>
+                            <span class="mini-stat-value">${stats.cleanSheet || 0}</span>
+                        </div>
+                        <div class="mini-stat">
+                            <i class="fas fa-circle-notch"></i>
+                            <span class="mini-stat-label">Gol Subiti</span>
+                            <span class="mini-stat-value">${stats.golSubiti || 0}</span>
+                        </div>
+                    ` : ''}
+                    <div class="mini-stat">
+                        <i class="fas fa-chart-line"></i>
+                        <span class="mini-stat-label">xGoals</span>
+                        <span class="mini-stat-value">${(stats.xgoals || 0).toFixed(1)}</span>
+                    </div>
+                    <div class="mini-stat">
+                        <i class="fas fa-arrow-trend-up"></i>
+                        <span class="mini-stat-label">xAssist</span>
+                        <span class="mini-stat-value">${(stats.xassist || 0).toFixed(1)}</span>
+                    </div>
+                    <div class="mini-stat">
+                        <i class="fas fa-star-half-alt"></i>
+                        <span class="mini-stat-label">Media Voto</span>
+                        <span class="mini-stat-value">${(stats.mediaVoto || 0).toFixed(1)}</span>
+                    </div>
+                    <div class="mini-stat">
+                        <i class="fas fa-trophy"></i>
+                        <span class="mini-stat-label">Fantavoto</span>
+                        <span class="mini-stat-value">${(stats.mediaFantavoto || 0).toFixed(1)}</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Prossima Partita -->
+            <div style="padding: 1.5rem; background: var(--light); border-radius: 12px;">
+                <h3 style="margin-bottom: 1rem;">
+                    <i class="fas fa-calendar-alt"></i> Prossima Partita
+                </h3>
+                <div style="display: grid; grid-template-columns: 1fr auto 1fr; gap: 1rem; align-items: center;">
+                    <div style="text-align: center;">
+                        <p style="font-size: 1.5rem; font-weight: 700; margin: 0;">${player.squadra}</p>
+                    </div>
+                    <div style="text-align: center;">
+                        <p style="font-size: 2rem; font-weight: 700; color: var(--primary-color); margin: 0;">VS</p>
+                    </div>
+                    <div style="text-align: center;">
+                        <p style="font-size: 1.5rem; font-weight: 700; margin: 0;">${player.avversario}</p>
+                        <p style="color: var(--text-secondary); margin: 0.5rem 0 0;">Difficoltà: ${player.difficolta}/20</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Stato -->
+            <div style="padding: 1.5rem; background: var(--light); border-radius: 12px;">
+                <h3 style="margin-bottom: 1rem;">
+                    <i class="fas fa-heartbeat"></i> Stato Attuale
+                </h3>
+                <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+                    ${player.infortunato ? '<span class="badge badge-danger" style="font-size: 1rem; padding: 0.75rem 1.5rem;"><i class="fas fa-ambulance"></i> Infortunato</span>' : ''}
+                    ${player.disponibile ? '<span class="badge badge-success" style="font-size: 1rem; padding: 0.75rem 1.5rem;"><i class="fas fa-check-circle"></i> Disponibile</span>' : 
+                      '<span class="badge badge-warning" style="font-size: 1rem; padding: 0.75rem 1.5rem;"><i class="fas fa-exclamation-triangle"></i> Non disponibile</span>'}
+                </div>
+            </div>
+        </div>
+    `;
+    
+    document.getElementById('modalPlayerName').textContent = player.nome;
+    document.getElementById('modalPlayerBody').innerHTML = modalHtml;
+    document.getElementById('playerModal').classList.add('active');
+}
+
+
+function closeModal() {
+    document.getElementById('playerModal').classList.remove('active');
+}
+
+// Calcola Punteggi
+async function calcolaPunteggi() {
+    // Se i dati vengono da JSON, NON permettere il ricalcolo
+    if (USE_JSON_FILES && rosa.length > 0) {
+        const hasPunteggi = rosa.some(p => p.punteggio > 0);
+        
+        if (hasPunteggi) {
+            alert(
+                '❌ ATTENZIONE ❌\n\n' +
+                'I punteggi sono già stati calcolati dal programma C.\n' +
+                'Per mantenere la precisione, NON possono essere ricalcolati dall\'interfaccia web.\n\n' +
+                'Se vuoi aggiornare i punteggi:\n' +
+                '1. Vai nel programma C\n' +
+                '2. Calcola i punteggi (opzione 2)\n' +
+                '3. Esporta per web (opzione 10)\n' +
+                '4. Ricarica questa pagina (F5)'
+            );
+            return;
+        }
+    }
+    
+    // Se arrivi qui, i punteggi NON sono stati calcolati
+    // Usa il backend o calcolo locale SOLO come ultima risorsa
+    alert('Per calcolare i punteggi, usa il programma C e poi esporta in JSON');
+}
+
+
+
+
+// Salva Dati
+async function salvaDati() {
+    // Salva sempre in localStorage come backup
+    localStorage.setItem('fantasoccerData', JSON.stringify(rosa));
+    
+    if (USE_BACKEND) {
+        try {
+            // Se vuoi implementare il salvataggio sul backend
+            // const response = await fetch(`${API_BASE}?action=salva`, {
+            //     method: 'POST',
+            //     body: JSON.stringify({players: rosa})
+            // });
+            console.log('✓ Dati salvati in localStorage');
+        } catch (error) {
+            console.log('⚠ Backend non disponibile per il salvataggio');
+        }
+    }
+    
+    showNotification('Dati salvati con successo!', 'success');
+}
+
+
+// Notification
+function showNotification(message, type = 'info') {
+    const notification = document.createElement('div');
+    
+    let bgColor;
+    switch(type) {
+        case 'success': bgColor = 'var(--success-color)'; break;
+        case 'error': bgColor = 'var(--danger-color)'; break;
+        case 'warning': bgColor = 'var(--warning-color)'; break;
+        default: bgColor = 'var(--primary-color)';
+    }
+    
+    notification.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        padding: 1rem 1.5rem;
+        background: ${bgColor};
+        color: white;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        z-index: 3000;
+        animation: slideIn 0.3s ease;
+    `;
+    notification.textContent = message;
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+        notification.style.animation = 'slideOut 0.3s ease';
+        setTimeout(() => notification.remove(), 300);
+    }, 3000);
+}
+
+// File Import Handlers
+// IMPORT STATISTICHE - Versione CORRETTA
+function handleStatsImport(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            const csv = e.target.result;
+            const lines = csv.split('\n');
+            
+            let successCount = 0;
+            
+            for (let i = 1; i < lines.length; i++) {
+                const line = lines[i].trim();
+                if (!line) continue;
+                
+                const fields = line.split(';');
+                if (fields.length < 15) continue;
+                
+                const nome = fields[0].trim();
+                const squadra = fields[1].trim();
+                const ruoloChar = fields[2].trim();
+                const goals = parseInt(fields[3]) || 0;
+                const assist = parseInt(fields[4]) || 0;
+                const minuti = parseInt(fields[5]) || 0;
+                const cleanSheet = parseInt(fields[6]) || 0;
+                const golSubiti = parseInt(fields[7]) || 0;
+                const xgoals = parseFloat(fields[8]) || 0;
+                const xassist = parseFloat(fields[9]) || 0;
+                const mediaVoto = parseFloat(fields[10]) || 0;
+                const mediaFantavoto = parseFloat(fields[11]) || 0;
+                const titolarita = parseFloat(fields[12]) || 0;
+                const infortunato = fields[13].trim() === '1';
+                const avversario = fields[14].trim();
+                
+                let ruolo;
+                switch(ruoloChar.toUpperCase()) {
+                    case 'P': ruolo = 0; break;
+                    case 'D': ruolo = 1; break;
+                    case 'C': ruolo = 2; break;
+                    case 'A': ruolo = 3; break;
+                    default: continue;
+                }
+                
+                const teamInfo = classifica.find(t => t.nome === avversario);
+                
+                let playerIndex = rosa.findIndex(p => p.nome === nome);
+                
+                const playerData = {
+                    nome: nome,
+                    squadra: squadra,
+                    ruolo: ruolo,
+                    punteggio: 0,
+                    titolarita: titolarita,
+                    avversario: avversario,
+                    difficolta: teamInfo ? teamInfo.punti : 10,
+                    infortunato: infortunato,
+                    disponibile: !infortunato,
+                    // AGGIUNGI STATISTICHE
+                    stats: {
+                        goals: goals,
+                        assist: assist,
+                        minuti: minuti,
+                        cleanSheet: cleanSheet,
+                        golSubiti: golSubiti,
+                        xgoals: xgoals,
+                        xassist: xassist,
+                        mediaVoto: mediaVoto,
+                        mediaFantavoto: mediaFantavoto
+                    }
+                };
+                
+                if (playerIndex >= 0) {
+                    rosa[playerIndex] = playerData;
+                } else {
+                    rosa.push(playerData);
+                }
+                
+                successCount++;
+            }
+            
+            if (successCount > 0) {
+                salvaDati();
+                renderDashboard();
+                renderRosa();
+                showNotification(`✓ ${successCount} giocatori importati!`, 'success');
+            }
+            
+        } catch (error) {
+            console.error('Errore import:', error);
+            showNotification('Errore nell\'importazione: ' + error.message, 'error');
+        }
+    };
+    
+    reader.readAsText(file);
+    event.target.value = '';
+}
+
+
+// IMPORT CLASSIFICA - Versione CORRETTA
+function handleClassificaImport(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            const csv = e.target.result;
+            const lines = csv.split('\n');
+            
+            const newClassifica = [];
+            let successCount = 0;
+            let errorCount = 0;
+            
+            // Salta header
+            for (let i = 1; i < lines.length; i++) {
+                const line = lines[i].trim();
+                if (!line) continue;
+                
+                // Parsing CSV con punto e virgola (;)
+                const fields = line.split(';');
+                if (fields.length < 2) {
+                    errorCount++;
+                    continue;
+                }
+                
+                let nomeSquadra = fields[0].trim();
+                const punti = parseInt(fields[1]) || 0;
+                
+                // Rimuovi virgolette se presenti
+                nomeSquadra = nomeSquadra.replace(/^["']|["']$/g, '');
+                
+                if (nomeSquadra && punti >= 0) {
+                    newClassifica.push({
+                        nome: nomeSquadra,
+                        punti: punti
+                    });
+                    successCount++;
+                }
+            }
+            
+            if (newClassifica.length > 0) {
+                // Ordina per punti decrescenti
+                classifica = newClassifica.sort((a, b) => b.punti - a.punti);
+                
+                // Aggiorna difficoltà partite nella rosa
+                rosa.forEach(player => {
+                    const teamInfo = classifica.find(t => t.nome === player.avversario);
+                    if (teamInfo) {
+                        player.difficolta = teamInfo.punti;
+                    }
+                });
+                
+                renderClassifica();
+                showNotification(`✓ ${successCount} squadre importate!`, 'success');
+            } else {
+                showNotification('Nessuna squadra importata. Verifica il formato CSV', 'error');
+            }
+            
+            if (errorCount > 0) {
+                showNotification(`⚠ ${errorCount} righe con errori`, 'warning');
+            }
+            
+        } catch (error) {
+            console.error('Errore import classifica:', error);
+            showNotification('Errore nell\'importazione: ' + error.message, 'error');
+        }
+    };
+    
+    reader.onerror = function() {
+        showNotification('Errore nella lettura del file', 'error');
+    };
+    
+    reader.readAsText(file);
+    
+    // Reset input
+    event.target.value = '';
+}
+
+
+function handleClassificaImport(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            const csv = e.target.result;
+            const lines = csv.split('\n');
+            const newClassifica = [];
+            
+            // Skip header
+            for (let i = 1; i < lines.length; i++) {
+                const line = lines[i].trim();
+                if (!line) continue;
+                
+                const fields = line.split(',');
+                if (fields.length < 2) continue;
+                
+                newClassifica.push({
+                    nome: fields[0].trim(),
+                    punti: parseInt(fields[1]) || 0
+                });
+            }
+            
+            if (newClassifica.length > 0) {
+                classifica = newClassifica.sort((a, b) => b.punti - a.punti);
+                renderClassifica();
+                showNotification(`${newClassifica.length} squadre importate!`, 'success');
+            }
+        } catch (error) {
+            showNotification('Errore nell\'importazione del file', 'error');
+            console.error(error);
+        }
+    };
+    reader.readAsText(file);
+}
+
+// Add CSS animations
+const style = document.createElement('style');
+style.textContent = `
+    @keyframes slideIn {
+        from { transform: translateX(100%); opacity: 0; }
+        to { transform: translateX(0); opacity: 1; }
+    }
+    @keyframes slideOut {
+        from { transform: translateX(0); opacity: 1; }
+        to { transform: translateX(100%); opacity: 0; }
+    }
+`;
+document.head.appendChild(style);
+
+// Gestione giocatori
+let currentEditPlayer = null;
+
+function loadPlayerForEdit() {
+    const select = document.getElementById('editPlayerSelect');
+    const playerNome = select.value;
+    
+    if (!playerNome) {
+        document.getElementById('editPlayerForm').style.display = 'none';
+        return;
+    }
+    
+    currentEditPlayer = rosa.find(p => p.nome === playerNome);
+    if (!currentEditPlayer) return;
+    
+    // Popola i campi
+    document.getElementById('editNome').value = currentEditPlayer.nome;
+    document.getElementById('editSquadra').value = currentEditPlayer.squadra;
+    document.getElementById('editTitolarita').value = currentEditPlayer.titolarita;
+    
+    // Popola dropdown avversari
+    const avversarioSelect = document.getElementById('editAvversario');
+    avversarioSelect.innerHTML = classifica.map(s => 
+        `<option value="${s.nome}" ${s.nome === currentEditPlayer.avversario ? 'selected' : ''}>${s.nome}</option>`
+    ).join('');
+    
+    // Stato
+    const stato = currentEditPlayer.infortunato ? 'infortunato' : 
+                  currentEditPlayer.disponibile ? 'disponibile' : 'squalificato';
+    document.getElementById('editStato').value = stato;
+    
+    // Statistiche
+    if (currentEditPlayer.stats) {
+        document.getElementById('editGoals').value = currentEditPlayer.stats.goals || 0;
+        document.getElementById('editAssist').value = currentEditPlayer.stats.assist || 0;
+        document.getElementById('editMinuti').value = currentEditPlayer.stats.minuti || 0;
+        document.getElementById('editMediaVoto').value = currentEditPlayer.stats.mediaVoto || 0;
+        document.getElementById('editMediaFantavoto').value = currentEditPlayer.stats.mediaFantavoto || 0;
+    }
+    
+    document.getElementById('editPlayerForm').style.display = 'block';
+}
+
+function savePlayerEdit() {
+    if (!currentEditPlayer) return;
+    
+    // Aggiorna dati
+    currentEditPlayer.squadra = document.getElementById('editSquadra').value;
+    currentEditPlayer.titolarita = parseFloat(document.getElementById('editTitolarita').value);
+    currentEditPlayer.avversario = document.getElementById('editAvversario').value;
+    
+    const stato = document.getElementById('editStato').value;
+    currentEditPlayer.infortunato = stato === 'infortunato';
+    currentEditPlayer.disponibile = stato === 'disponibile';
+    
+    // Aggiorna statistiche
+    if (!currentEditPlayer.stats) currentEditPlayer.stats = {};
+    currentEditPlayer.stats.goals = parseInt(document.getElementById('editGoals').value) || 0;
+    currentEditPlayer.stats.assist = parseInt(document.getElementById('editAssist').value) || 0;
+    currentEditPlayer.stats.minuti = parseInt(document.getElementById('editMinuti').value) || 0;
+    currentEditPlayer.stats.mediaVoto = parseFloat(document.getElementById('editMediaVoto').value) || 0;
+    currentEditPlayer.stats.mediaFantavoto = parseFloat(document.getElementById('editMediaFantavoto').value) || 0;
+    
+    // Aggiorna difficoltà
+    const teamInfo = classifica.find(t => t.nome === currentEditPlayer.avversario);
+    if (teamInfo) currentEditPlayer.difficolta = teamInfo.punti;
+    
+    // Salva
+    salvaDati();
+    renderDashboard();
+    renderRosa();
+    
+    showNotification(`✓ ${currentEditPlayer.nome} aggiornato!`, 'success');
+    cancelPlayerEdit();
+}
+
+function cancelPlayerEdit() {
+    document.getElementById('editPlayerForm').style.display = 'none';
+    document.getElementById('editPlayerSelect').value = '';
+    currentEditPlayer = null;
+}
+
+// Popola select giocatori quando si apre gestione
+function populatePlayerSelect() {
+    const select = document.getElementById('editPlayerSelect');
+    select.innerHTML = '<option value="">-- Seleziona --</option>' +
+        rosa.map(p => `<option value="${p.nome}">${p.nome} (${ruoliMap[p.ruolo]})</option>`).join('');
+}
+
+// Editor classifica
+function renderClassificaEditor() {
+    const html = classifica.map((squadra, index) => `
+        <div style="display: grid; grid-template-columns: 50px 1fr 100px 100px; gap: 1rem; align-items: center; padding: 0.5rem; border-bottom: 1px solid #eee;">
+            <div style="font-weight: 700;">${index + 1}</div>
+            <div>
+                <input type="text" value="${squadra.nome}" 
+                       onchange="updateClassificaNome(${index}, this.value)" 
+                       class="form-control">
+            </div>
+            <div>
+                <input type="number" value="${squadra.punti}" min="1" max="20"
+                       onchange="updateClassificaPunti(${index}, this.value)" 
+                       class="form-control">
+            </div>
+            <button class="btn" onclick="moveClassifica(${index}, -1)" 
+                    ${index === 0 ? 'disabled' : ''}>
+                <i class="fas fa-arrow-up"></i>
+            </button>
+        </div>
+    `).join('');
+    
+    document.getElementById('classificaEditor').innerHTML = html;
+}
+
+function updateClassificaNome(index, nome) {
+    classifica[index].nome = nome;
+}
+
+function updateClassificaPunti(index, punti) {
+    classifica[index].punti = parseInt(punti);
+}
+
+function moveClassifica(index, direction) {
+    if (index + direction < 0 || index + direction >= classifica.length) return;
+    
+    const temp = classifica[index];
+    classifica[index] = classifica[index + direction];
+    classifica[index + direction] = temp;
+    
+    renderClassificaEditor();
+}
+
+function saveClassificaEdit() {
+    renderClassifica();
+    
+    // Aggiorna difficoltà per tutti i giocatori
+    rosa.forEach(player => {
+        const teamInfo = classifica.find(t => t.nome === player.avversario);
+        if (teamInfo) player.difficolta = teamInfo.punti;
+    });
+    
+    salvaDati();
+    showNotification('✓ Classifica aggiornata!', 'success');
+}
+
+// Modifica showSection per inizializzare gestione
+const originalShowSection = showSection;
+showSection = function(sectionId) {
+    originalShowSection(sectionId);
+    
+    if (sectionId === 'gestione') {
+        populatePlayerSelect();
+        renderClassificaEditor();
+    }
+};
+
+// ============================================
+// ORDINAMENTO ROSA
+// ============================================
+
+function sortRosaBy(field) {
+    // Se clicco sullo stesso campo, inverto la direzione
+    if (currentSortBy === field) {
+        currentSortDirection = currentSortDirection === 'asc' ? 'desc' : 'asc';
+    } else {
+        currentSortBy = field;
+        currentSortDirection = field === 'nome' || field === 'squadra' ? 'asc' : 'desc';
+    }
+    
+    renderRosa();
+}
+
+function updateSortButtons() {
+    // Trova tutti i pulsanti nella sezione rosa
+    const buttons = document.querySelectorAll('#rosa .btn-primary');
+    
+    // Rimuovi stato attivo da tutti
+    buttons.forEach(btn => {
+        btn.style.background = 'var(--primary-color)';
+        btn.style.fontWeight = 'normal';
+    });
+    
+    // Mappa dei pulsanti per indice
+    const buttonMap = {
+        'punteggio': 0,
+        'ruolo': 1,
+        'nome': 2,
+        'squadra': 3,
+        'titolarita': 4
+    };
+    
+    const activeIndex = buttonMap[currentSortBy];
+    if (activeIndex !== undefined && buttons[activeIndex]) {
+        buttons[activeIndex].style.background = 'var(--success-color)';
+        buttons[activeIndex].style.fontWeight = '700';
+    }
+}
+
+function sortRosaBy(field) {
+    // Se clicco sullo stesso campo, inverto la direzione
+    if (currentSortBy === field) {
+        currentSortDirection = currentSortDirection === 'asc' ? 'desc' : 'asc';
+    } else {
+        currentSortBy = field;
+        currentSortDirection = field === 'nome' || field === 'squadra' ? 'asc' : 'desc';
+    }
+    
+    renderRosa();
+}
+
+// Modifica la funzione renderRosa esistente
+// Variabili per paginazione
+let currentPage = 1;
+let itemsPerPage = 15;
+let filteredRosa = [];
+let currentRoleFilter = 'all';
+
+function renderRosa() {
+    const tbody = document.getElementById('rosaTableBody');
+    
+    if (!tbody) {
+        console.error('Elemento rosaTableBody non trovato!');
+        return;
+    }
+    
+    if (rosa.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="8" style="text-align: center; padding: 3rem;">
+                    <div style="display: flex; flex-direction: column; align-items: center; gap: 1rem;">
+                        <i class="fas fa-users" style="font-size: 3rem; color: var(--text-secondary);"></i>
+                        <p style="color: var(--text-secondary); margin: 0;">Nessun giocatore nella rosa.</p>
+                    </div>
+                </td>
+            </tr>
+        `;
+        return;
+    }
+    
+    // Applica filtro ruolo
+    filteredRosa = currentRoleFilter === 'all' ? 
+        [...rosa] : 
+        rosa.filter(p => p.ruolo === parseInt(currentRoleFilter));
+    
+    // Applica ordinamento
+    filteredRosa.sort((a, b) => {
+        let valueA, valueB;
+        
+        switch(currentSortBy) {
+            case 'punteggio':
+                valueA = a.punteggio || 0;
+                valueB = b.punteggio || 0;
+                break;
+            case 'ruolo':
+                if (a.ruolo === b.ruolo) {
+                    return (b.punteggio || 0) - (a.punteggio || 0);
+                }
+                valueA = a.ruolo;
+                valueB = b.ruolo;
+                break;
+            case 'nome':
+                valueA = (a.nome || '').toLowerCase();
+                valueB = (b.nome || '').toLowerCase();
+                break;
+            default:
+                valueA = a.punteggio || 0;
+                valueB = b.punteggio || 0;
+        }
+        
+        if (currentSortDirection === 'asc') {
+            return valueA > valueB ? 1 : valueA < valueB ? -1 : 0;
+        } else {
+            return valueA < valueB ? 1 : valueA > valueB ? -1 : 0;
+        }
+    });
+    
+    // Calcola paginazione
+    const totalPages = Math.ceil(filteredRosa.length / itemsPerPage);
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    const paginatedRosa = filteredRosa.slice(startIndex, endIndex);
+    
+    // Renderizza righe
+    const html = paginatedRosa.map((player, index) => {
+        const actualIndex = startIndex + index + 1;
+        return `
+            <tr onclick="showPlayerDetails('${player.nome}')">
+                <td style="color: var(--text-secondary); font-weight: 600;">#${actualIndex}</td>
+                <td><strong style="font-size: 1.05rem;">${player.nome}</strong></td>
+                <td><span class="badge badge-info">${ruoliMap[player.ruolo]}</span></td>
+                <td>
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        <i class="fas fa-shield-alt" style="color: #3b82f6; font-size: 0.9rem;"></i>
+                        <span>${player.squadra}</span>
+                    </div>
+                </td>
+                <td><span class="score-highlight">${(player.punteggio || 0).toFixed(2)}</span></td>
+                <td>
+                    <div class="progress-bar-container">
+                        <div class="progress-bar">
+                            <div class="progress-bar-fill" style="width: ${player.titolarita}%; background: linear-gradient(90deg, #10b981, #059669);"></div>
+                        </div>
+                        <span style="font-size: 0.9rem; font-weight: 600;">${player.titolarita}%</span>
+                    </div>
+                </td>
+                <td>
+                    ${player.infortunato ? 
+                        '<span class="badge badge-danger"><i class="fas fa-heartbeat"></i></span>' : 
+                      player.disponibile ? 
+                        '<span class="badge badge-success"><i class="fas fa-check"></i></span>' : 
+                        '<span class="badge badge-warning"><i class="fas fa-times"></i></span>'}
+                </td>
+                <td>
+                    <button class="btn btn-primary btn-sm" 
+                            onclick="event.stopPropagation(); showPlayerDetails('${player.nome}')">
+                        <i class="fas fa-eye"></i>
+                    </button>
+                </td>
+            </tr>
+        `;
+    }).join('');
+    
+    tbody.innerHTML = html;
+    renderPagination(totalPages);
+    updateSortButtons();
+}
+
+function renderPagination(totalPages) {
+    const info = document.getElementById('paginationInfo');
+    const controls = document.getElementById('paginationControls');
+    
+    if (!info || !controls) return;
+    
+    const startItem = (currentPage - 1) * itemsPerPage + 1;
+    const endItem = Math.min(currentPage * itemsPerPage, filteredRosa.length);
+    
+    info.textContent = `Mostrando ${startItem}-${endItem} di ${filteredRosa.length} giocatori`;
+    
+    // Genera pulsanti paginazione
+    let html = '';
+    
+    // Pulsante precedente
+    html += `<button class="pagination-btn" onclick="changePage(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''}>
+        <i class="fas fa-chevron-left"></i>
+    </button>`;
+    
+    // Pulsanti numerici
+    for (let i = 1; i <= totalPages; i++) {
+        if (totalPages <= 5 || i === 1 || i === totalPages || Math.abs(i - currentPage) <= 1) {
+            html += `<button class="pagination-btn ${i === currentPage ? 'active' : ''}" onclick="changePage(${i})">
+                ${i}
+            </button>`;
+        } else if (i === currentPage - 2 || i === currentPage + 2) {
+            html += `<span style="padding: 0 0.5rem;">...</span>`;
+        }
+    }
+    
+    // Pulsante successivo
+    html += `<button class="pagination-btn" onclick="changePage(${currentPage + 1})" ${currentPage === totalPages ? 'disabled' : ''}>
+        <i class="fas fa-chevron-right"></i>
+    </button>`;
+    
+    controls.innerHTML = html;
+}
+
+function changePage(page) {
+    const totalPages = Math.ceil(filteredRosa.length / itemsPerPage);
+    if (page < 1 || page > totalPages) return;
+    currentPage = page;
+    renderRosa();
+}
+
+function changeItemsPerPage(value) {
+    itemsPerPage = parseInt(value);
+    currentPage = 1;
+    renderRosa();
+}
+
+function filterByRole(role) {
+    currentRoleFilter = role;
+    currentPage = 1;
+    renderRosa();
+}
+
+// Aggiorna filterRosa per usare la paginazione
+function filterRosa(searchTerm) {
+    if (!searchTerm) {
+        currentPage = 1;
+        renderRosa();
+        return;
+    }
+    
+    // Filtra rosa
+    filteredRosa = rosa.filter(player => 
+        player.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        player.squadra.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+    
+    // Applica filtro ruolo se attivo
+    if (currentRoleFilter !== 'all') {
+        filteredRosa = filteredRosa.filter(p => p.ruolo === parseInt(currentRoleFilter));
+    }
+    
+    // Ordina
+    filteredRosa.sort((a, b) => {
+        let valueA, valueB;
+        
+        switch(currentSortBy) {
+            case 'punteggio':
+                valueA = a.punteggio || 0;
+                valueB = b.punteggio || 0;
+                break;
+            case 'ruolo':
+                if (a.ruolo === b.ruolo) {
+                    return (b.punteggio || 0) - (a.punteggio || 0);
+                }
+                valueA = a.ruolo;
+                valueB = b.ruolo;
+                break;
+            case 'nome':
+                valueA = (a.nome || '').toLowerCase();
+                valueB = (b.nome || '').toLowerCase();
+                break;
+            default:
+                valueA = a.punteggio || 0;
+                valueB = b.punteggio || 0;
+        }
+        
+        if (currentSortDirection === 'asc') {
+            return valueA > valueB ? 1 : valueA < valueB ? -1 : 0;
+        } else {
+            return valueA < valueB ? 1 : valueA > valueB ? -1 : 0;
+        }
+    });
+    
+    currentPage = 1;
+    
+    // Renderizza
+    const tbody = document.getElementById('rosaTableBody');
+    const totalPages = Math.ceil(filteredRosa.length / itemsPerPage);
+    const startIndex = 0;
+    const endIndex = itemsPerPage;
+    const paginatedRosa = filteredRosa.slice(startIndex, endIndex);
+    
+    if (filteredRosa.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="8" style="text-align: center; padding: 2rem;">
+                    <i class="fas fa-search" style="font-size: 2rem; color: var(--text-secondary);"></i>
+                    <p style="color: var(--text-secondary); margin: 0.5rem 0 0;">Nessun giocatore trovato per "${searchTerm}"</p>
+                </td>
+            </tr>
+        `;
+        document.getElementById('paginationInfo').textContent = '';
+        document.getElementById('paginationControls').innerHTML = '';
+        return;
+    }
+    
+    const html = paginatedRosa.map((player, index) => `
+        <tr onclick="showPlayerDetails('${player.nome}')">
+            <td style="color: var(--text-secondary); font-weight: 600;">#${index + 1}</td>
+            <td><strong style="font-size: 1.05rem;">${player.nome}</strong></td>
+            <td><span class="badge badge-info">${ruoliMap[player.ruolo]}</span></td>
+            <td>
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    <i class="fas fa-shield-alt" style="color: #3b82f6; font-size: 0.9rem;"></i>
+                    <span>${player.squadra}</span>
+                </div>
+            </td>
+            <td><span class="score-highlight">${(player.punteggio || 0).toFixed(2)}</span></td>
+            <td>
+                <div class="progress-bar-container">
+                    <div class="progress-bar">
+                        <div class="progress-bar-fill" style="width: ${player.titolarita}%; background: linear-gradient(90deg, #10b981, #059669);"></div>
+                    </div>
+                    <span style="font-size: 0.9rem; font-weight: 600;">${player.titolarita}%</span>
+                </div>
+            </td>
+            <td>
+                ${player.infortunato ? 
+                    '<span class="badge badge-danger"><i class="fas fa-heartbeat"></i></span>' : 
+                  player.disponibile ? 
+                    '<span class="badge badge-success"><i class="fas fa-check"></i></span>' : 
+                    '<span class="badge badge-warning"><i class="fas fa-times"></i></span>'}
+            </td>
+            <td>
+                <button class="btn btn-primary btn-sm" 
+                        onclick="event.stopPropagation(); showPlayerDetails('${player.nome}')">
+                    <i class="fas fa-eye"></i>
+                </button>
+            </td>
+        </tr>
+    `).join('');
+    
+    tbody.innerHTML = html;
+    renderPagination(totalPages);
+    updateSortButtons();
+}
+
+
+
+
+
+function updateSortButtons() {
+    // Rimuovi stato attivo da tutti i pulsanti
+    document.querySelectorAll('#rosa .btn-primary').forEach(btn => {
+        btn.style.background = 'var(--primary-color)';
+        btn.style.fontWeight = 'normal';
+    });
+    
+    // Trova il pulsante attivo e evidenzialo
+    const buttons = {
+        'punteggio': 0,
+        'ruolo': 1,
+        'nome': 2,
+        'squadra': 3,
+        'titolarita': 4
+    };
+    
+    const activeIndex = buttons[currentSortBy];
+    if (activeIndex !== undefined) {
+        const activeBtn = document.querySelectorAll('#rosa .btn-primary')[activeIndex];
+        if (activeBtn) {
+            activeBtn.style.background = 'var(--success-color)';
+            activeBtn.style.fontWeight = '700';
+            
+            // Aggiungi freccia per indicare direzione
+            const icon = activeBtn.querySelector('i');
+            if (icon) {
+                icon.className = currentSortDirection === 'asc' ? 
+                    'fas fa-sort-amount-up' : 'fas fa-sort-amount-down';
+            }
+        }
+    }
+}
+// ============================================
+// EXPORT MODIFICHE PER DATABASE C
+// ============================================
+
+function esportaModifiche() {
+    // Crea JSON con formato compatibile col programma C
+    const exportData = {
+        players: rosa.map(p => ({
+            nome: p.nome,
+            ruolo: p.ruolo,
+            squadra: p.squadra,
+            punteggio: parseFloat(p.punteggio.toFixed(2)),
+            titolarita: p.titolarita,
+            avversario: p.avversario,
+            difficolta: p.difficolta,
+            infortunato: p.infortunato,
+            disponibile: p.disponibile,
+            stats: p.stats || {
+                goals: 0,
+                assist: 0,
+                minuti: 0,
+                cleanSheet: 0,
+                golSubiti: 0,
+                xgoals: 0,
+                xassist: 0,
+                mediaVoto: 0,
+                mediaFantavoto: 0
+            }
+        }))
+    };
+    
+    // Converti in JSON formattato
+    const jsonString = JSON.stringify(exportData, null, 2);
+    
+    // Crea blob e download
+    const blob = new Blob([jsonString], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'rosa.json';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    
+    showNotification('✓ File esportato! Ora caricalo nel programma C', 'success');
+}
+
+// Filtro ricerca giocatore nella gestione
+function filterPlayerSelect(searchTerm) {
+    const select = document.getElementById('editPlayerSelect');
+    const options = Array.from(select.options).slice(1); // Escludi la prima opzione
+    
+    options.forEach(option => {
+        const playerName = option.textContent.toLowerCase();
+        if (playerName.includes(searchTerm.toLowerCase())) {
+            option.style.display = '';
+        } else {
+            option.style.display = 'none';
+        }
+    });
+}
+
+// Stile per radio button stato
+document.addEventListener('DOMContentLoaded', function() {
+    const style = document.createElement('style');
+    style.textContent = `
+        .stato-option:has(input:checked) {
+            background: linear-gradient(135deg, var(--primary-color), #2563eb);
+            border-color: var(--primary-color) !important;
+            color: white;
+        }
+        
+        .stato-option:has(input:checked) i {
+            color: white !important;
+        }
+        
+        .stato-option:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+        }
+    `;
+    document.head.appendChild(style);
+});
+
+// Carica giocatore per modifica
+function loadPlayerForEdit() {
+    const select = document.getElementById('editPlayerSelect');
+    const selectedName = select.value;
+    
+    if (!selectedName) {
+        document.getElementById('editPlayerForm').style.display = 'none';
+        return;
+    }
+    
+    const player = rosa.find(p => p.nome === selectedName);
+    if (!player) return;
+    
+    // Mostra form
+    document.getElementById('editPlayerForm').style.display = 'block';
+    
+    // Popola campi
+    document.getElementById('editNome').value = player.nome;
+    document.getElementById('editSquadra').value = player.squadra;
+    document.getElementById('editTitolarita').value = player.titolarita;
+    
+    // Popola select avversari
+    const avvSelect = document.getElementById('editAvversario');
+    avvSelect.innerHTML = classifica.map(team => 
+        `<option value="${team.nome}" ${team.nome === player.avversario ? 'selected' : ''}>${team.nome}</option>`
+    ).join('');
+    
+    // Imposta stato
+    if (player.infortunato) {
+        document.querySelector('input[value="infortunato"]').checked = true;
+    } else if (player.disponibile) {
+        document.querySelector('input[value="disponibile"]').checked = true;
+    } else {
+        document.querySelector('input[value="squalificato"]').checked = true;
+    }
+    
+    // Popola statistiche
+    const stats = player.stats || {};
+    document.getElementById('editGoals').value = stats.goals || 0;
+    document.getElementById('editAssist').value = stats.assist || 0;
+    document.getElementById('editMinuti').value = stats.minuti || 0;
+    document.getElementById('editMediaVoto').value = (stats.mediaVoto || 0).toFixed(2);
+    document.getElementById('editMediaFantavoto').value = (stats.mediaFantavoto || 0).toFixed(2);
+    
+    // Scroll al form
+    document.getElementById('editPlayerForm').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+// Salva modifiche giocatore
+function savePlayerEdit() {
+    const nome = document.getElementById('editNome').value;
+    const player = rosa.find(p => p.nome === nome);
+    
+    if (!player) return;
+    
+    // Aggiorna dati
+    player.squadra = document.getElementById('editSquadra').value;
+    player.titolarita = parseFloat(document.getElementById('editTitolarita').value);
+    player.avversario = document.getElementById('editAvversario').value;
+    
+    // Aggiorna stato
+    const stato = document.querySelector('input[name="editStato"]:checked').value;
+    player.infortunato = (stato === 'infortunato');
+    player.disponibile = (stato === 'disponibile');
+    
+    // Aggiorna statistiche
+    if (!player.stats) player.stats = {};
+    player.stats.goals = parseInt(document.getElementById('editGoals').value) || 0;
+    player.stats.assist = parseInt(document.getElementById('editAssist').value) || 0;
+    player.stats.minuti = parseInt(document.getElementById('editMinuti').value) || 0;
+    player.stats.mediaVoto = parseFloat(document.getElementById('editMediaVoto').value) || 0;
+    player.stats.mediaFantavoto = parseFloat(document.getElementById('editMediaFantavoto').value) || 0;
+    
+    // Aggiorna difficoltà avversario
+    const teamAvversario = classifica.find(t => t.nome === player.avversario);
+    if (teamAvversario) {
+        player.difficolta = 20 - teamAvversario.punti;
+    }
+    
+    // Salva in localStorage
+    salvaDati();
+    
+    // Aggiorna visualizzazioni
+    renderRosa();
+    renderDashboard();
+    renderFormazione();
+    
+    showNotification(`✓ ${nome} aggiornato con successo!`, 'success');
+    
+    // Nascondi form
+    cancelPlayerEdit();
+}
+
+// Annulla modifica
+function cancelPlayerEdit() {
+    document.getElementById('editPlayerSelect').value = '';
+    document.getElementById('searchPlayerEdit').value = '';
+    document.getElementById('editPlayerForm').style.display = 'none';
+}
+
+// Renderizza editor classifica
+function renderClassificaEditor() {
+    const editor = document.getElementById('classificaEditor');
+    
+    const html = classifica.map((team, index) => `
+        <div class="classifica-team-editor">
+            <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem;">
+                <span style="font-size: 1.2rem; font-weight: 700; color: var(--primary-color);">${index + 1}°</span>
+                <strong style="font-size: 1.1rem;">${team.nome}</strong>
+            </div>
+            <label>
+                <i class="fas fa-trophy"></i> Punti:
+                <input type="number" id="team_${index}_punti" value="${team.punti}" min="0" max="20">
+            </label>
+        </div>
+    `).join('');
+    
+    editor.innerHTML = html;
+}
+
+// Salva modifiche classifica
+function saveClassificaEdit() {
+    classifica.forEach((team, index) => {
+        const input = document.getElementById(`team_${index}_punti`);
+        if (input) {
+            team.punti = parseInt(input.value) || 0;
+        }
+    });
+    
+    // Riordina per punti
+    classifica.sort((a, b) => b.punti - a.punti);
+    
+    // Aggiorna difficoltà avversari per tutti i giocatori
+    rosa.forEach(player => {
+        const teamAvversario = classifica.find(t => t.nome === player.avversario);
+        if (teamAvversario) {
+            player.difficolta = 20 - teamAvversario.punti;
+        }
+    });
+    
+    salvaDati();
+    renderClassifica();
+    renderClassificaEditor();
+    showNotification('✓ Classifica aggiornata!', 'success');
+}
+
+// Inizializza select giocatori nella gestione
+function initGestioneSection() {
+    const select = document.getElementById('editPlayerSelect');
+    select.innerHTML = '<option value="">-- Seleziona giocatore --</option>' + 
+        rosa.map(p => `<option value="${p.nome}">${p.nome} (${ruoliMap[p.ruolo]})</option>`).join('');
+    
+    renderClassificaEditor();
+}
+
+// Chiama al caricamento
+document.addEventListener('DOMContentLoaded', function() {
+    // ... altre inizializzazioni ...
+    initGestioneSection();
+});
+// ============================================
+// TOP GIOCATORI PER RUOLO
+// ============================================
+
+function renderTopGiocatori() {
+    const section = document.getElementById('topGiocatori');
+    
+    if (!section) {
+        console.error('❌ Sezione topGiocatori non trovata!');
+        return;
+    }
+    
+    if (!rosa || rosa.length === 0) {
+        section.innerHTML = `
+            <h1>Top Giocatori per Ruolo</h1>
+            <div class="card">
+                <div class="card-body" style="text-align: center; padding: 3rem;">
+                    <i class="fas fa-users" style="font-size: 3rem; color: var(--text-secondary); margin-bottom: 1rem;"></i>
+                    <p style="color: var(--text-secondary);">Nessun giocatore disponibile</p>
+                </div>
+            </div>
+        `;
+        return;
+    }
+    
+    console.log('📊 Rendering top giocatori per ruolo...');
+    
+    // Dividi per ruolo e prendi i top
+    const portieri = rosa.filter(p => p.ruolo === 0)
+                         .sort((a, b) => (b.punteggio || 0) - (a.punteggio || 0))
+                         .slice(0, 3);
+    
+    const difensori = rosa.filter(p => p.ruolo === 1)
+                          .sort((a, b) => (b.punteggio || 0) - (a.punteggio || 0))
+                          .slice(0, 8);
+    
+    const centrocampisti = rosa.filter(p => p.ruolo === 2)
+                               .sort((a, b) => (b.punteggio || 0) - (a.punteggio || 0))
+                               .slice(0, 8);
+    
+    const attaccanti = rosa.filter(p => p.ruolo === 3)
+                           .sort((a, b) => (b.punteggio || 0) - (a.punteggio || 0))
+                           .slice(0, 6);
+    
+    console.log(`✓ P:${portieri.length} D:${difensori.length} C:${centrocampisti.length} A:${attaccanti.length}`);
+    
+    // Inizio HTML
+    let html = '<h1><i class="fas fa-star"></i> Top Giocatori per Ruolo</h1>';
+    
+    // Template per ogni ruolo
+    const renderRuolo = (giocatori, nomeRuolo, icon, color) => {
+        if (giocatori.length === 0) return '';
+        
+        return `
+            <div class="card" style="margin-bottom: 2rem;">
+                <div class="card-header" style="background: linear-gradient(135deg, ${color}, ${color}dd); color: white;">
+                    <h2 style="margin: 0; font-size: 1.5rem;">
+                        <i class="${icon}"></i> ${nomeRuolo}
+                    </h2>
+                </div>
+                <div class="card-body">
+                    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.5rem;">
+                        ${giocatori.map((player, index) => `
+                            <div class="player-card-role" style="position: relative; padding: 1.5rem; background: linear-gradient(135deg, #f8fafc, white); border-radius: 12px; border: 2px solid #e5e7eb; transition: all 0.3s; cursor: pointer;" 
+                                 onclick="showPlayerDetails('${player.nome}')" 
+                                 onmouseover="this.style.borderColor='${color}'; this.style.transform='translateY(-4px)'; this.style.boxShadow='0 6px 16px rgba(0,0,0,0.15)';" 
+                                 onmouseout="this.style.borderColor='#e5e7eb'; this.style.transform='translateY(0)'; this.style.boxShadow='none';">
+                                
+                                <!-- Badge posizione -->
+                                <div style="position: absolute; top: -10px; left: -10px; width: 40px; height: 40px; background: ${color}; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 1.2rem; box-shadow: 0 2px 8px rgba(0,0,0,0.2);">
+                                    ${index + 1}
+                                </div>
+                                
+                                <!-- Info giocatore -->
+                                <div style="margin-top: 0.5rem;">
+                                    <h3 style="margin: 0 0 0.5rem; font-size: 1.3rem; color: #111827;">${player.nome}</h3>
+                                    
+                                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1rem; color: var(--text-secondary); font-size: 0.9rem;">
+                                        <i class="fas fa-shield-alt"></i>
+                                        <span>${player.squadra}</span>
+                                        ${player.infortunato ? '<span class="badge badge-danger" style="margin-left: 0.5rem;"><i class="fas fa-ambulance"></i></span>' : ''}
+                                    </div>
+                                    
+                                    <!-- Punteggio -->
+                                    <div style="background: white; padding: 1rem; border-radius: 8px; margin-bottom: 1rem; box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);">
+                                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                                            <span style="color: var(--text-secondary); font-weight: 600;">Punteggio</span>
+                                            <span style="font-size: 2rem; font-weight: 700; background: linear-gradient(135deg, ${color}, ${color}dd); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+                                                ${(player.punteggio || 0).toFixed(2)}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Statistiche -->
+                                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; font-size: 0.9rem;">
+                                        <div style="background: #f3f4f6; padding: 0.5rem; border-radius: 6px;">
+                                            <span style="color: var(--text-secondary); display: block; font-size: 0.75rem; margin-bottom: 0.25rem;">Titolarità</span>
+                                            <strong style="font-size: 1.1rem; color: ${color};">${player.titolarita}%</strong>
+                                        </div>
+                                        <div style="background: #f3f4f6; padding: 0.5rem; border-radius: 6px;">
+                                            <span style="color: var(--text-secondary); display: block; font-size: 0.75rem; margin-bottom: 0.25rem;">Avversario</span>
+                                            <strong style="font-size: 0.95rem;">${player.avversario}</strong>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            </div>
+        `;
+    };
+    
+    // Render ogni ruolo
+    html += renderRuolo(portieri, 'Portieri', 'fas fa-hands', '#3b82f6');
+    html += renderRuolo(difensori, 'Difensori', 'fas fa-shield-alt', '#10b981');
+    html += renderRuolo(centrocampisti, 'Centrocampisti', 'fas fa-running', '#f59e0b');
+    html += renderRuolo(attaccanti, 'Attaccanti', 'fas fa-futbol', '#ef4444');
+    
+    section.innerHTML = html;
+    
+    console.log('✅ Top giocatori renderizzati');
+}
