@@ -1076,3 +1076,276 @@ input[type="radio"] {
 .content-section.active {
     display: block;
 }
+@keyframes slideIn {
+    from {
+        transform: translateX(400px);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+@keyframes slideOut {
+    from {
+        transform: translateX(0);
+        opacity: 1;
+    }
+    to {
+        transform: translateX(400px);
+        opacity: 0;
+    }
+}
+
+.notification {
+    font-size: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+/* ============================================
+   RESPONSIVE DESIGN
+   ============================================ */
+
+/* Tablet (768px - 1024px) */
+@media (max-width: 1024px) {
+    .sidebar {
+        width: 200px;
+    }
+    
+    .main-content {
+        margin-left: 200px;
+    }
+    
+    .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .dashboard-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .import-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Mobile (max 768px) */
+@media (max-width: 768px) {
+    .sidebar {
+        position: fixed;
+        left: -250px;
+        width: 250px;
+        transition: left 0.3s ease;
+        z-index: 1000;
+    }
+    
+    .sidebar.active {
+        left: 0;
+    }
+    
+    .main-content {
+        margin-left: 0;
+        width: 100%;
+    }
+    
+    .topbar {
+        margin-left: 0;
+        width: 100%;
+    }
+    
+    .menu-toggle {
+        display: block !important;
+    }
+    
+    .stats-grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+    
+    .stat-card {
+        padding: 1rem;
+    }
+    
+    .dashboard-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    /* Tabelle responsive */
+    .table-container {
+        overflow-x: auto;
+    }
+    
+    table {
+        font-size: 0.85rem;
+    }
+    
+    th, td {
+        padding: 0.5rem;
+    }
+    
+    /* Nascondi colonne meno importanti su mobile */
+    th:nth-child(4), td:nth-child(4), /* Squadra */
+    th:nth-child(6), td:nth-child(6) { /* Titolarità */
+        display: none;
+    }
+    
+    /* Formazione campo più piccolo */
+    .campo-calcio {
+        padding: 1rem;
+    }
+    
+    .campo-player {
+        min-width: 80px !important;
+        font-size: 0.8rem;
+        padding: 0.5rem !important;
+    }
+    
+    /* Controlli import */
+    .import-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    /* Paginazione */
+    #paginationControls button {
+        padding: 0.5rem;
+        font-size: 0.85rem;
+    }
+}
+
+/* Mobile piccoli (max 480px) */
+@media (max-width: 480px) {
+    .topbar-right {
+        display: none;
+    }
+    
+    h1 {
+        font-size: 1.5rem;
+    }
+    
+    .card {
+        padding: 0.75rem;
+    }
+    
+    .btn {
+        padding: 0.5rem 1rem;
+        font-size: 0.9rem;
+    }
+    
+    /* Nascondi più colonne */
+    th:nth-child(7), td:nth-child(7) { /* Stato */
+        display: none;
+    }
+}
+
+/* Overlay per sidebar mobile */
+.sidebar-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 999;
+}
+
+.sidebar-overlay.active {
+    display: block;
+}
+/* Animazione per righe classifica */
+#classificaEditorBody tr {
+    transition: all 0.3s ease;
+}
+
+#classificaEditorBody tr:hover {
+    transform: translateX(5px);
+}
+
+.btn-sm {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.9rem;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-sm:hover:not(:disabled) {
+    transform: scale(1.1);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}
+
+.btn-sm:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+}
+#classificaEditor {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    min-height: 400px;
+}
+.btn-arrow:not(:disabled):hover {
+    transform: scale(1.15) translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+}
+
+.btn-arrow:not(:disabled):active {
+    transform: scale(1.05) translateY(0);
+}
+/* Animazioni classifica */
+#classificaEditorBody tr {
+    transition: background 0.2s ease, transform 0.3s ease;
+    position: relative;
+}
+
+#classificaEditorBody tr:hover {
+    background: #f9fafb !important;
+}
+
+/* Animazione pulsanti freccia */
+.btn-arrow {
+    transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+.btn-arrow:not(:disabled):hover {
+    transform: scale(1.15) translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+}
+
+.btn-arrow:not(:disabled):active {
+    transform: scale(1.05) translateY(0);
+}
+
+/* Animazione icone */
+.btn-arrow i {
+    transition: transform 0.2s ease;
+}
+
+.btn-arrow:not(:disabled):hover i {
+    animation: bounce 0.6s infinite;
+}
+
+@keyframes bounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-4px); }
+}
+
+/* Highlight temporaneo per nuova posizione */
+@keyframes highlightNew {
+    0% { background: #dbeafe; }
+    100% { background: white; }
+}
+
+/* Effetto pulse sui punteggi quando cambiano */
+@keyframes pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+}
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-10px); }
+    75% { transform: translateX(10px); }
+}

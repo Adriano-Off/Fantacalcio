@@ -5,9 +5,11 @@ const USE_JSON_FILES = true;
 const AUTO_CALCULATE = false;
 let currentSortBy = 'punteggio';
 let currentSortDirection = 'desc';
-// Resto del codice...
-
-
+const PUNTO_NEUTRO = 10.0;
+const COEFF_PORTIERE = 0.035;
+const COEFF_DIFENSORE = 0.025;
+const COEFF_CENTROCAMPISTA = 0.030;
+const COEFF_ATTACCANTE = 0.040;
 
 
 let rosa = [];
@@ -225,38 +227,46 @@ function setupEventListeners() {
 });
 }
 
-function showSection(sectionId) {
+function showSection(sectionName) {
+    console.log('📄 Cambio sezione:', sectionName);
+    
     // Nascondi tutte le sezioni
     document.querySelectorAll('.content-section').forEach(section => {
         section.classList.remove('active');
     });
     
-    // Rimuovi active da tutti i menu
-    document.querySelectorAll('.menu-item').forEach(item => {
-        item.classList.remove('active');
-    });
-    
-    // Mostra la sezione richiesta
-    const section = document.getElementById(sectionId);
-    if (section) {
-        section.classList.add('active');
+    // Mostra sezione richiesta
+    const targetSection = document.getElementById(sectionName);
+    if (targetSection) {
+        targetSection.classList.add('active');
         
-        // Aggiungi active al menu corrispondente
-        const menuItem = document.querySelector(`[onclick="showSection('${sectionId}')"]`);
-        if (menuItem) {
-            menuItem.classList.add('active');
-        }
-        
-        // Renderizza se necessario
-        if (sectionId === 'topGiocatori') {
-            renderTopGiocatori();
-        } else if (sectionId === 'formazione') {
+        // Carica contenuto specifico DOPO aver mostrato la sezione
+        if (sectionName === 'gestione') {
+            loadGestioneEditor();
+        } else if (sectionName === 'classifica') {
+            renderClassifica();
+        } else if (sectionName === 'rosa') {
+            renderRosa();
+        } else if (sectionName === 'formazione') {
             renderFormazione();
+        } else if (sectionName === 'topGiocatori') {
+            renderTopGiocatori();
+        } else if (sectionName === 'dashboard') {
+            renderDashboard();
         }
     } else {
-        console.error('Sezione non trovata:', sectionId);
+        console.error('❌ Sezione non trovata:', sectionName);
     }
+    
+    // Aggiorna menu attivo
+    document.querySelectorAll('.nav-item').forEach(item => {
+        item.classList.remove('active');
+        if (item.dataset.section === sectionName) {
+            item.classList.add('active');
+        }
+    });
 }
+
 
 
 async function loadData() {
@@ -1107,33 +1117,250 @@ function closeModal() {
 }
 
 // Calcola Punteggi
-async function calcolaPunteggi() {
-    // Se i dati vengono da JSON, NON permettere il ricalcolo
-    if (USE_JSON_FILES && rosa.length > 0) {
-        const hasPunteggi = rosa.some(p => p.punteggio > 0);
-        
-        if (hasPunteggi) {
-            alert(
-                '❌ ATTENZIONE ❌\n\n' +
-                'I punteggi sono già stati calcolati dal programma C.\n' +
-                'Per mantenere la precisione, NON possono essere ricalcolati dall\'interfaccia web.\n\n' +
-                'Se vuoi aggiornare i punteggi:\n' +
-                '1. Vai nel programma C\n' +
-                '2. Calcola i punteggi (opzione 2)\n' +
-                '3. Esporta per web (opzione 10)\n' +
-                '4. Ricarica questa pagina (F5)'
-            );
-            return;
-        }
+function calcolaPunteggi() {
+    const btn = document.getElementById('calcPunteggi');
+    
+    // Controllo esistenza pulsante
+    if (!btn) {
+        console.error('Pulsante calcPunteggi non trovato!');
+        return;
     }
     
-    // Se arrivi qui, i punteggi NON sono stati calcolati
-    // Usa il backend o calcolo locale SOLO come ultima risorsa
-    alert('Per calcolare i punteggi, usa il programma C e poi esporta in JSON');
+    // Testo originale HARDCODED (non catturato dinamicamente)
+    const TESTO_ORIGINALE = '<i class="fas fa-calculator"></i> Calcola Punteggi';
+    
+    // Funzione per ripristinare SEMPRE il pulsante
+    const ripristinaPulsante = () => {
+        btn.innerHTML = TESTO_ORIGINALE;
+        btn.disabled = false;
+    };
+    
+    // Controllo dati
+    if (!rosa || rosa.length === 0) {
+        showNotification('❌ Nessun giocatore da calcolare!', 'error');
+        return;
+    }
+    
+    if (!classifica || classifica.length === 0) {
+        showNotification('❌ Classifica mancante! Importa prima la classifica.', 'error');
+        return;
+    }
+    
+    // Mostra loader
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Calcolo...';
+    btn.disabled = true;
+    
+    // Usa setTimeout per permettere al browser di aggiornare l'UI
+    setTimeout(() => {
+        let updated = 0;
+        
+        try {
+            console.log('🔄 Inizio calcolo punteggi');
+            
+            rosa.forEach((player, index) => {
+                try {
+                    if (!player) return;
+                    
+                    // Calcola difficoltà partita
+                    player.difficolta = calcolaDifficolta(player.avversario);
+                    
+                    // Calcola punteggio in base al ruolo
+                    let newScore = 0;
+                    switch(player.ruolo) {
+                        case 0: newScore = calcPortiere(player); break;
+                        case 1: newScore = calcDifensore(player); break;
+                        case 2: newScore = calcCentrocampista(player); break;
+                        case 3: newScore = calcAttaccante(player); break;
+                        default: newScore = player.punteggio || 0;
+                    }
+                    
+                    // Aggiorna punteggio
+                    player.punteggio = Math.round(newScore * 100) / 100;
+                    updated++;
+                    
+                } catch (error) {
+                    console.error(`Errore calcolo giocatore ${index}:`, error);
+                }
+            });
+            
+            console.log(`✅ ${updated}/${rosa.length} giocatori aggiornati`);
+            
+            // Salva
+            salvaDati();
+            
+            // Aggiorna visualizzazioni
+            renderDashboard();
+            renderRosa();
+            renderFormazione();
+            renderTopGiocatori();
+            
+            showNotification(`✅ Punteggi calcolati per ${updated} giocatori!`, 'success');
+            
+        } catch (error) {
+            console.error('❌ Errore:', error);
+            showNotification('❌ Errore durante il calcolo!', 'error');
+        } finally {
+            // GARANTISCE il ripristino
+            ripristinaPulsante();
+        }
+    }, 100);
 }
 
 
 
+
+
+// Calcola difficoltà (con fallback)
+function calcolaDifficolta(avversario) {
+    if (!avversario || !classifica) {
+        console.warn('Avversario o classifica mancante');
+        return 10;
+    }
+    
+    for (let team of classifica) {
+        if (team.nome === avversario) {
+            return team.punti || 10;
+        }
+    }
+    console.warn(`Avversario ${avversario} non trovato in classifica`);
+    return 10; // Default
+}
+
+// Calcola forza squadra (con fallback)
+function calcolaForzaSquadra(squadra) {
+    if (!squadra || !classifica) {
+        console.warn('Squadra o classifica mancante');
+        return 10;
+    }
+    
+    for (let team of classifica) {
+        if (team.nome === squadra) {
+            return team.punti || 10;
+        }
+    }
+    console.warn(`Squadra ${squadra} non trovata in classifica`);
+    return 10; // Default
+}
+
+// Calcola modificatore squadra (con fallback)
+function calcolaModificatoreSquadra(squadra, ruolo) {
+    const forza = calcolaForzaSquadra(squadra);
+    
+    // Normalizza su scala 0.7 - 1.3 per base 20 (1-20)
+    let modificatoreBase = 0.7 + (forza - 1) * (0.6 / 19);
+    
+    // Aggiusta per ruolo
+    switch(ruolo) {
+        case 0: return modificatoreBase * 1.1;  // PORTIERE
+        case 1: return modificatoreBase * 1.05; // DIFENSORE
+        case 2: return modificatoreBase;        // CENTROCAMPISTA
+        case 3: return modificatoreBase * 0.95; // ATTACCANTE
+        default: return modificatoreBase;
+    }
+}
+
+
+// PORTIERE (come in C)
+function calcPortiere(player) {
+    if (player.infortunato) {
+        return 0.0;
+    }
+    
+    const stats = player.stats || {};
+    
+    let baseScore = (stats.goals || 0) * 15.0 +
+                    (stats.assist || 0) * 8.0 +
+                    (stats.cleanSheet || 0) * 6.0 +
+                    (stats.xgoals || 0) * 3.0 +
+                    (stats.xassist || 0) * 2.0 +
+                    (stats.mediaVoto || 0) * 4.0 +
+                    (stats.mediaFantavoto || 0) * 5.0 -
+                    (stats.golSubiti || 0) * 1.0;
+    
+    if ((stats.minuti || 0) > 60) {
+        baseScore += 2.0;
+    }
+    
+    const modificatoreSquadra = calcolaModificatoreSquadra(player.squadra, player.ruolo);
+    const modificatoreDifficolta = 1.0 + (PUNTO_NEUTRO - player.difficolta) * COEFF_PORTIERE;
+    
+    return baseScore * (player.titolarita / 100.0) * modificatoreDifficolta * modificatoreSquadra;
+}
+
+// DIFENSORE (come in C)
+function calcDifensore(player) {
+    if (player.infortunato) {
+        return 0.0;
+    }
+    
+    const stats = player.stats || {};
+    
+    let baseScore = (stats.goals || 0) * 12.0 +
+                    (stats.assist || 0) * 6.0 +
+                    (stats.xgoals || 0) * 2.5 +
+                    (stats.xassist || 0) * 1.5 +
+                    (stats.mediaVoto || 0) * 3.0 +
+                    (stats.mediaFantavoto || 0) * 4.0;
+    
+    if ((stats.minuti || 0) > 60) {
+        baseScore += 1.5;
+    }
+    
+    const modificatoreSquadra = calcolaModificatoreSquadra(player.squadra, player.ruolo);
+    const modificatoreDifficolta = 1.0 + (PUNTO_NEUTRO - player.difficolta) * COEFF_DIFENSORE;
+    
+    return baseScore * (player.titolarita / 100.0) * modificatoreDifficolta * modificatoreSquadra;
+}
+
+// CENTROCAMPISTA (come in C)
+function calcCentrocampista(player) {
+    if (player.infortunato) {
+        return 0.0;
+    }
+    
+    const stats = player.stats || {};
+    
+    let baseScore = (stats.goals || 0) * 10.0 +
+                    (stats.assist || 0) * 5.0 +
+                    (stats.xgoals || 0) * 2.0 +
+                    (stats.xassist || 0) * 1.0 +
+                    (stats.mediaVoto || 0) * 2.5 +
+                    (stats.mediaFantavoto || 0) * 3.5;
+    
+    if ((stats.minuti || 0) > 60) {
+        baseScore += 1.0;
+    }
+    
+    const modificatoreSquadra = calcolaModificatoreSquadra(player.squadra, player.ruolo);
+    const modificatoreDifficolta = 1.0 + (PUNTO_NEUTRO - player.difficolta) * COEFF_CENTROCAMPISTA;
+    
+    return baseScore * (player.titolarita / 100.0) * modificatoreDifficolta * modificatoreSquadra;
+}
+
+// ATTACCANTE (come in C)
+function calcAttaccante(player) {
+    if (player.infortunato) {
+        return 0.0;
+    }
+    
+    const stats = player.stats || {};
+    
+    let baseScore = (stats.goals || 0) * 8.0 +
+                    (stats.assist || 0) * 4.0 +
+                    (stats.xgoals || 0) * 1.5 +
+                    (stats.xassist || 0) * 0.8 +
+                    (stats.mediaVoto || 0) * 2.0 +
+                    (stats.mediaFantavoto || 0) * 3.0;
+    
+    if ((stats.minuti || 0) > 60) {
+        baseScore += 0.5;
+    }
+    
+    const modificatoreSquadra = calcolaModificatoreSquadra(player.squadra, player.ruolo);
+    const modificatoreDifficolta = 1.0 + (PUNTO_NEUTRO - player.difficolta) * COEFF_ATTACCANTE;
+    
+    return baseScore * (player.titolarita / 100.0) * modificatoreDifficolta * modificatoreSquadra;
+}
 
 // Salva Dati
 async function salvaDati() {
@@ -1159,36 +1386,64 @@ async function salvaDati() {
 
 // Notification
 function showNotification(message, type = 'info') {
-    const notification = document.createElement('div');
-    
-    let bgColor;
-    switch(type) {
-        case 'success': bgColor = 'var(--success-color)'; break;
-        case 'error': bgColor = 'var(--danger-color)'; break;
-        case 'warning': bgColor = 'var(--warning-color)'; break;
-        default: bgColor = 'var(--primary-color)';
+    try {
+        // Rimuovi notifiche esistenti
+        const existing = document.querySelectorAll('.notification');
+        existing.forEach(n => n.remove());
+        
+        // Crea notifica
+        const notification = document.createElement('div');
+        notification.className = `notification notification-${type}`;
+        notification.textContent = message;
+        
+        // Colore in base al tipo
+        let bgColor;
+        switch(type) {
+            case 'success': bgColor = '#10b981'; break;
+            case 'error': bgColor = '#ef4444'; break;
+            case 'warning': bgColor = '#f59e0b'; break;
+            default: bgColor = '#3b82f6'; break;
+        }
+        
+        // Stile inline
+        notification.style.cssText = `
+            position: fixed;
+            top: 80px;
+            right: 20px;
+            background: ${bgColor};
+            color: white;
+            padding: 1rem 1.5rem;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            z-index: 10000;
+            max-width: 400px;
+            font-weight: 600;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        `;
+        
+        document.body.appendChild(notification);
+        
+        // Animazione entrata
+        setTimeout(() => {
+            notification.style.opacity = '1';
+            notification.style.transform = 'translateX(0)';
+        }, 10);
+        
+        // Rimuovi dopo 3 secondi
+        setTimeout(() => {
+            notification.style.opacity = '0';
+            notification.style.transform = 'translateX(400px)';
+            setTimeout(() => notification.remove(), 300);
+        }, 3000);
+        
+    } catch (error) {
+        console.error('Errore showNotification:', error);
+        // Fallback: usa alert
+        alert(message);
     }
-    
-    notification.style.cssText = `
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        padding: 1rem 1.5rem;
-        background: ${bgColor};
-        color: white;
-        border-radius: 8px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-        z-index: 3000;
-        animation: slideIn 0.3s ease;
-    `;
-    notification.textContent = message;
-    document.body.appendChild(notification);
-    
-    setTimeout(() => {
-        notification.style.animation = 'slideOut 0.3s ease';
-        setTimeout(() => notification.remove(), 300);
-    }, 3000);
 }
+
 
 // File Import Handlers
 // IMPORT STATISTICHE - Versione CORRETTA
@@ -1462,6 +1717,12 @@ function loadPlayerForEdit() {
         document.getElementById('editMinuti').value = currentEditPlayer.stats.minuti || 0;
         document.getElementById('editMediaVoto').value = currentEditPlayer.stats.mediaVoto || 0;
         document.getElementById('editMediaFantavoto').value = currentEditPlayer.stats.mediaFantavoto || 0;
+        // Dopo editMediaFantavoto
+document.getElementById('editCleanSheet').value = stats.cleanSheet || 0;
+document.getElementById('editGolSubiti').value = stats.golSubiti || 0;
+document.getElementById('editXgoals').value = (stats.xgoals || 0).toFixed(2);
+document.getElementById('editXassist').value = (stats.xassist || 0).toFixed(2);
+
     }
     
     document.getElementById('editPlayerForm').style.display = 'block';
@@ -1486,6 +1747,12 @@ function savePlayerEdit() {
     currentEditPlayer.stats.minuti = parseInt(document.getElementById('editMinuti').value) || 0;
     currentEditPlayer.stats.mediaVoto = parseFloat(document.getElementById('editMediaVoto').value) || 0;
     currentEditPlayer.stats.mediaFantavoto = parseFloat(document.getElementById('editMediaFantavoto').value) || 0;
+    // Dopo mediaFantavoto
+player.stats.cleanSheet = parseInt(document.getElementById('editCleanSheet').value) || 0;
+player.stats.golSubiti = parseInt(document.getElementById('editGolSubiti').value) || 0;
+player.stats.xgoals = parseFloat(document.getElementById('editXgoals').value) || 0;
+player.stats.xassist = parseFloat(document.getElementById('editXassist').value) || 0;
+
     
     // Aggiorna difficoltà
     const teamInfo = classifica.find(t => t.nome === currentEditPlayer.avversario);
@@ -1515,27 +1782,125 @@ function populatePlayerSelect() {
 
 // Editor classifica
 function renderClassificaEditor() {
-    const html = classifica.map((squadra, index) => `
-        <div style="display: grid; grid-template-columns: 50px 1fr 100px 100px; gap: 1rem; align-items: center; padding: 0.5rem; border-bottom: 1px solid #eee;">
-            <div style="font-weight: 700;">${index + 1}</div>
-            <div>
-                <input type="text" value="${squadra.nome}" 
-                       onchange="updateClassificaNome(${index}, this.value)" 
-                       class="form-control">
-            </div>
-            <div>
-                <input type="number" value="${squadra.punti}" min="1" max="20"
-                       onchange="updateClassificaPunti(${index}, this.value)" 
-                       class="form-control">
-            </div>
-            <button class="btn" onclick="moveClassifica(${index}, -1)" 
-                    ${index === 0 ? 'disabled' : ''}>
-                <i class="fas fa-arrow-up"></i>
-            </button>
-        </div>
-    `).join('');
+    const container = document.getElementById('classificaEditor');
     
-    document.getElementById('classificaEditor').innerHTML = html;
+    if (!container) {
+        console.error('❌ Container classificaEditor non trovato!');
+        return;
+    }
+    
+    // FORZA VISIBILITÀ
+    container.style.display = 'block';
+    container.style.visibility = 'visible';
+    container.style.opacity = '1';
+    
+    if (!classifica || classifica.length === 0) {
+        container.innerHTML = '<p style="text-align: center; color: var(--text-secondary);">Nessuna classifica disponibile</p>';
+        return;
+    }
+    
+    // ... resto del codice esistente ...
+    
+    console.log('✅ HTML inserito. Lunghezza:', container.innerHTML.length);
+}
+
+function moveTeam(index, direction) {
+    const canMove = (direction === 'up' && index > 0) || 
+                    (direction === 'down' && index < classifica.length - 1);
+    
+    if (!canMove) {
+        // Effetto shake
+        const row = document.getElementById(`team-${index}`);
+        if (row) {
+            row.style.animation = 'shake 0.5s ease';
+            setTimeout(() => row.style.animation = '', 500);
+        }
+        showNotification('❌ Impossibile spostare ulteriormente!', 'warning');
+        return;
+    }
+    if (direction === 'up' && index === 0) return;
+    if (direction === 'down' && index === classifica.length - 1) return;
+    
+    const targetIndex = direction === 'up' ? index - 1 : index + 1;
+    const teamName = classifica[index].nome;
+    
+    // Elementi DOM
+    const row1 = document.getElementById(`team-${index}`);
+    const row2 = document.getElementById(`team-${targetIndex}`);
+    
+    if (!row1 || !row2) return;
+    
+    // Disabilita pulsanti
+    document.querySelectorAll('.btn-arrow').forEach(btn => btn.disabled = true);
+    
+    // Calcola distanza movimento
+    const moveDistance = direction === 'up' ? -row1.offsetHeight : row1.offsetHeight;
+    
+    // Animazione swap
+    row1.style.transition = 'transform 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55), background 0.3s ease';
+    row1.style.transform = `translateY(${moveDistance}px)`;
+    row1.style.background = 'linear-gradient(90deg, #dbeafe, #bfdbfe)';
+    row1.style.zIndex = '10';
+    
+    row2.style.transition = 'transform 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55), background 0.3s ease';
+    row2.style.transform = `translateY(${-moveDistance}px)`;
+    row2.style.background = 'linear-gradient(90deg, #fef3c7, #fde68a)';
+    row2.style.zIndex = '5';
+    
+    // Dopo animazione
+    setTimeout(() => {
+        // Swap array
+        [classifica[index], classifica[targetIndex]] = [classifica[targetIndex], classifica[index]];
+        recalculatePoints();
+        
+        // Re-render
+        renderClassificaEditor();
+        
+        // Highlight nuova posizione
+        setTimeout(() => {
+            const newRow = document.getElementById(`team-${targetIndex}`);
+            if (newRow) {
+                newRow.style.animation = 'highlightNew 1.5s ease';
+                newRow.style.background = '#dbeafe';
+                
+                setTimeout(() => {
+                    newRow.style.animation = '';
+                    newRow.style.background = 'white';
+                }, 1500);
+            }
+            
+            // Riabilita pulsanti
+            document.querySelectorAll('.btn-arrow').forEach(btn => btn.disabled = false);
+        }, 50);
+        
+        // Notifica con emoji animata
+        showNotification(`📊 ${teamName} ${direction === 'up' ? '⬆️' : '⬇️'} ${direction === 'up' ? 'salita' : 'scesa'} al ${targetIndex + 1}° posto!`, 'success');
+    }, 500);
+}
+
+
+function recalculatePoints() {
+    // Assegna punti in base alla posizione (1° = 20 punti, ultimo = 1 punto)
+    classifica.forEach((team, index) => {
+        team.punti = 20 - index;
+    });
+}
+function saveClassificaEdit() {
+    // Salva in localStorage
+    localStorage.setItem('fantacalcio_classifica', JSON.stringify(classifica));
+    
+    // Aggiorna difficoltà per tutti i giocatori
+    rosa.forEach(player => {
+        player.difficolta = calcolaDifficolta(player.avversario);
+    });
+    
+    // Salva rosa aggiornata
+    salvaDati();
+    
+    // Aggiorna visualizzazioni
+    renderClassifica();
+    
+    showNotification('✅ Classifica salvata! Ricalcola i punteggi per applicare le modifiche.', 'success');
 }
 
 function updateClassificaNome(index, nome) {
@@ -2024,6 +2389,14 @@ function filterPlayerSelect(searchTerm) {
 
 // Stile per radio button stato
 document.addEventListener('DOMContentLoaded', function() {
+    const calcPunteggiBtn = document.getElementById('calcPunteggi');
+    if (calcPunteggiBtn) {
+        calcPunteggiBtn.addEventListener('click', function() {
+            if (confirm('⚠️ Ricalcolare i punteggi di tutti i giocatori?\n\nQuesta operazione sovrascriverà i punteggi attuali.')) {
+                calcolaPunteggi();
+            }
+        });
+    }
     const style = document.createElement('style');
     style.textContent = `
         .stato-option:has(input:checked) {
@@ -2060,7 +2433,7 @@ function loadPlayerForEdit() {
     // Mostra form
     document.getElementById('editPlayerForm').style.display = 'block';
     
-    // Popola campi
+    // Popola campi base
     document.getElementById('editNome').value = player.nome;
     document.getElementById('editSquadra').value = player.squadra;
     document.getElementById('editTitolarita').value = player.titolarita;
@@ -2080,17 +2453,22 @@ function loadPlayerForEdit() {
         document.querySelector('input[value="squalificato"]').checked = true;
     }
     
-    // Popola statistiche
+    // Popola TUTTE le statistiche
     const stats = player.stats || {};
     document.getElementById('editGoals').value = stats.goals || 0;
     document.getElementById('editAssist').value = stats.assist || 0;
     document.getElementById('editMinuti').value = stats.minuti || 0;
+    document.getElementById('editCleanSheet').value = stats.cleanSheet || 0;
+    document.getElementById('editGolSubiti').value = stats.golSubiti || 0;
+    document.getElementById('editXgoals').value = (stats.xgoals || 0).toFixed(1);
+    document.getElementById('editXassist').value = (stats.xassist || 0).toFixed(1);
     document.getElementById('editMediaVoto').value = (stats.mediaVoto || 0).toFixed(2);
     document.getElementById('editMediaFantavoto').value = (stats.mediaFantavoto || 0).toFixed(2);
     
     // Scroll al form
     document.getElementById('editPlayerForm').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
+
 
 // Salva modifiche giocatore
 function savePlayerEdit() {
@@ -2099,7 +2477,7 @@ function savePlayerEdit() {
     
     if (!player) return;
     
-    // Aggiorna dati
+    // Aggiorna dati base
     player.squadra = document.getElementById('editSquadra').value;
     player.titolarita = parseFloat(document.getElementById('editTitolarita').value);
     player.avversario = document.getElementById('editAvversario').value;
@@ -2109,11 +2487,15 @@ function savePlayerEdit() {
     player.infortunato = (stato === 'infortunato');
     player.disponibile = (stato === 'disponibile');
     
-    // Aggiorna statistiche
+    // Aggiorna TUTTE le statistiche
     if (!player.stats) player.stats = {};
     player.stats.goals = parseInt(document.getElementById('editGoals').value) || 0;
     player.stats.assist = parseInt(document.getElementById('editAssist').value) || 0;
     player.stats.minuti = parseInt(document.getElementById('editMinuti').value) || 0;
+    player.stats.cleanSheet = parseInt(document.getElementById('editCleanSheet').value) || 0;
+    player.stats.golSubiti = parseInt(document.getElementById('editGolSubiti').value) || 0;
+    player.stats.xgoals = parseFloat(document.getElementById('editXgoals').value) || 0;
+    player.stats.xassist = parseFloat(document.getElementById('editXassist').value) || 0;
     player.stats.mediaVoto = parseFloat(document.getElementById('editMediaVoto').value) || 0;
     player.stats.mediaFantavoto = parseFloat(document.getElementById('editMediaFantavoto').value) || 0;
     
@@ -2146,23 +2528,97 @@ function cancelPlayerEdit() {
 
 // Renderizza editor classifica
 function renderClassificaEditor() {
-    const editor = document.getElementById('classificaEditor');
+    const container = document.getElementById('classificaEditor');
     
-    const html = classifica.map((team, index) => `
-        <div class="classifica-team-editor">
-            <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem;">
-                <span style="font-size: 1.2rem; font-weight: 700; color: var(--primary-color);">${index + 1}°</span>
-                <strong style="font-size: 1.1rem;">${team.nome}</strong>
-            </div>
-            <label>
-                <i class="fas fa-trophy"></i> Punti:
-                <input type="number" id="team_${index}_punti" value="${team.punti}" min="0" max="20">
-            </label>
+    if (!container) {
+        console.error('❌ Container classificaEditor non trovato!');
+        return;
+    }
+    
+    if (!classifica || classifica.length === 0) {
+        container.innerHTML = '<p style="text-align: center; color: var(--text-secondary);">Nessuna classifica disponibile</p>';
+        return;
+    }
+    
+    let html = `
+        <div style="background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+            <table style="width: 100%; border-collapse: collapse;">
+                <thead>
+                    <tr style="background: linear-gradient(135deg, var(--warning-color), #d97706); color: white;">
+                        <th style="padding: 1rem; text-align: center; width: 60px;">#</th>
+                        <th style="padding: 1rem; text-align: left;">Squadra</th>
+                        <th style="padding: 1rem; text-align: center; width: 120px;">Azioni</th>
+                    </tr>
+                </thead>
+                <tbody id="classificaEditorBody">
+    `;
+    
+    classifica.forEach((team, index) => {
+        const isFirst = index === 0;
+        const isLast = index === classifica.length - 1;
+        
+        html += `
+            <tr id="team-${index}" style="border-bottom: 1px solid #e5e7eb; transition: all 0.2s;" onmouseover="this.style.background='#f9fafb'" onmouseout="this.style.background='white'">
+                <td style="padding: 1rem; text-align: center; font-weight: 700; font-size: 1.1rem; color: var(--primary-color);">
+                    ${index + 1}
+                </td>
+                <td style="padding: 1rem;">
+                    <div style="display: flex; align-items: center; gap: 0.75rem;">
+                        <div style="width: 30px; height: 30px; background: linear-gradient(135deg, var(--primary-color), #2563eb); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: 700; font-size: 0.9rem;">
+                            ${team.nome[0]}
+                        </div>
+                        <span style="font-weight: 600; font-size: 1rem;">${team.nome}</span>
+                        <span style="color: var(--text-secondary); font-size: 0.85rem; margin-left: auto;">${team.punti} pt</span>
+                    </div>
+                </td>
+                <td style="padding: 1rem; text-align: center;">
+                    <div style="display: flex; gap: 0.5rem; justify-content: center;">
+                        <button class="btn-arrow" 
+                                onclick="moveTeam(${index}, 'up')" 
+                                ${isFirst ? 'disabled' : ''}
+                                style="width: 40px; height: 40px; border: none; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; ${isFirst ? 'background: #e5e7eb; color: #9ca3af; cursor: not-allowed;' : 'background: var(--success-color); color: white;'}"
+                                title="Sposta su">
+                            <i class="fas fa-arrow-up" style="font-size: 1.2rem;"></i>
+                        </button>
+                        <button class="btn-arrow" 
+                                onclick="moveTeam(${index}, 'down')" 
+                                ${isLast ? 'disabled' : ''}
+                                style="width: 40px; height: 40px; border: none; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; ${isLast ? 'background: #e5e7eb; color: #9ca3af; cursor: not-allowed;' : 'background: var(--danger-color); color: white;'}"
+                                title="Sposta giù">
+                            <i class="fas fa-arrow-down" style="font-size: 1.2rem;"></i>
+                        </button>
+                    </div>
+                </td>
+            </tr>
+        `;
+    });
+    
+    html += `
+                </tbody>
+            </table>
         </div>
-    `).join('');
+        
+        <div style="margin-top: 1.5rem; padding: 1.5rem; background: #fef3c7; border-radius: 8px; border-left: 4px solid var(--warning-color);">
+            <div style="display: flex; align-items: center; gap: 1rem;">
+                <i class="fas fa-info-circle" style="color: var(--warning-color); font-size: 1.5rem;"></i>
+                <div>
+                    <p style="margin: 0; font-weight: 600; margin-bottom: 0.25rem;">Gestione Classifica</p>
+                    <p style="margin: 0; font-size: 0.9rem;">Usa le frecce <i class="fas fa-arrow-up" style="color: var(--success-color);"></i> <i class="fas fa-arrow-down" style="color: var(--danger-color);"></i> per riordinare le squadre. La posizione determina la forza e la difficoltà delle partite.</p>
+                </div>
+            </div>
+        </div>
+    `;
     
-    editor.innerHTML = html;
+    container.innerHTML = html;
+    
+    // FORZA VISIBILITÀ
+    container.style.display = 'block';
+    container.style.visibility = 'visible';
+    container.style.opacity = '1';
+    
+    console.log('✅ Classifica editor renderizzato e visibile');
 }
+
 
 // Salva modifiche classifica
 function saveClassificaEdit() {
@@ -2326,4 +2782,103 @@ function renderTopGiocatori() {
     section.innerHTML = html;
     
     console.log('✅ Top giocatori renderizzati');
+}
+// ============================================
+// MOBILE SIDEBAR TOGGLE
+// ============================================
+
+document.addEventListener('DOMContentLoaded', function() {
+    const menuToggle = document.getElementById('menuToggle');
+    const sidebar = document.getElementById('sidebar');
+    
+    // Crea overlay
+    const overlay = document.createElement('div');
+    overlay.className = 'sidebar-overlay';
+    document.body.appendChild(overlay);
+    
+    // Toggle sidebar
+    if (menuToggle) {
+        menuToggle.addEventListener('click', function() {
+            sidebar.classList.toggle('active');
+            overlay.classList.toggle('active');
+        });
+    }
+    
+    // Chiudi con overlay
+    overlay.addEventListener('click', function() {
+        sidebar.classList.remove('active');
+        overlay.classList.remove('active');
+    });
+    
+    // Chiudi quando clicchi un link della sidebar
+    document.querySelectorAll('.nav-item').forEach(item => {
+        item.addEventListener('click', function() {
+            if (window.innerWidth <= 768) {
+                sidebar.classList.remove('active');
+                overlay.classList.remove('active');
+            }
+        });
+    });
+});
+// ============================================
+// WIZARD SETUP PRIMO ACCESSO
+// ============================================
+
+const DEFAULT_CLASSIFICA = [
+    {nome: "Napoli", punti: 20}, {nome: "Inter", punti: 18}, {nome: "Juventus", punti: 17},
+    {nome: "Milan", punti: 16}, {nome: "Lazio", punti: 16}, {nome: "Atalanta", punti: 15},
+    {nome: "Roma", punti: 14}, {nome: "Fiorentina", punti: 13}, {nome: "Torino", punti: 12},
+    {nome: "Bologna", punti: 11}, {nome: "Udinese", punti: 10}, {nome: "Verona", punti: 10},
+    {nome: "Empoli", punti: 9}, {nome: "Monza", punti: 8}, {nome: "Genoa", punti: 8},
+    {nome: "Lecce", punti: 7}, {nome: "Parma", punti: 6}, {nome: "Cagliari", punti: 5},
+    {nome: "Venezia", punti: 4}, {nome: "Como", punti: 3}
+];
+
+function loadGestioneEditor() {
+    console.log('📝 Caricamento editor gestione...');
+    
+    // Verifica che classifica esista
+    if (!classifica || classifica.length === 0) {
+        console.error('❌ Classifica non caricata!');
+        showNotification('❌ Classifica non disponibile', 'error');
+        return;
+    }
+    
+    // Carica select giocatori
+    populatePlayerSelect();
+    
+    // Rendering classifica con delay per sicurezza
+    setTimeout(() => {
+        console.log('🔄 Rendering classifica editor...');
+        const container = document.getElementById('classificaEditor');
+        
+        if (!container) {
+            console.error('❌ Container classificaEditor non trovato nell\'HTML!');
+            return;
+        }
+        
+        renderClassificaEditor();
+        console.log('✅ Classifica editor renderizzato');
+    }, 50);
+}
+
+
+
+function populatePlayerSelect() {
+    const select = document.getElementById('editPlayerSelect');
+    if (!select || !rosa) return;
+    
+    select.innerHTML = '<option value="">-- Seleziona giocatore --</option>';
+    
+    rosa.forEach(player => {
+        const option = document.createElement('option');
+        option.value = player.nome;
+        option.textContent = `${player.nome} (${getRuoloName(player.ruolo)}) - ${player.squadra}`;
+        select.appendChild(option);
+    });
+}
+
+function getRuoloName(ruolo) {
+    const nomi = ['Portiere', 'Difensore', 'Centrocampista', 'Attaccante'];
+    return nomi[ruolo] || 'Sconosciuto';
 }
