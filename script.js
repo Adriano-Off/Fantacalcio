@@ -5,11 +5,11 @@ const USE_JSON_FILES = true;
 const AUTO_CALCULATE = false;
 let currentSortBy = 'punteggio';
 let currentSortDirection = 'desc';
-const PUNTO_NEUTRO = 10.0;
-const COEFF_PORTIERE = 0.035;
-const COEFF_DIFENSORE = 0.025;
-const COEFF_CENTROCAMPISTA = 0.030;
-const COEFF_ATTACCANTE = 0.040;
+const PUNTONEUTRO = 10.0;
+const COEFFPORTIERE = 0.035;
+const COEFFDIFENSORE = 0.025;
+const COEFFCENTROCAMPISTA = 0.030;
+const COEFFATTACCANTE = 0.040;
 
 
 let rosa = [];
@@ -110,26 +110,28 @@ function updateCalcButton() {
 }
 
 async function initializeApp() {
+    console.log('🚀 Inizializzazione app...');
+    
+    // Carica dati
     await loadData();
     
-    renderDashboard();
-    renderRosa();
-    renderFormazione();  // ← Questa deve esserci
-    renderClassifica();
-    renderTopGiocatori();
-    
-    if (rosa.length === 0) {
-        showWelcomeMessage();
-    } else {
-        checkScoreOrigin();
-                updateCalcButton(); // ← AGGIUNGI QUESTA RIGA
- // ← AGGIUNGI QUESTA RIGA
+    // ⚠️ CONTROLLA SE È IL PRIMO ACCESSO
+    if (checkFirstTime()) {
+        console.log('👋 Primo accesso - mostra wizard');
+        return; // Il wizard gestisce tutto
     }
     
+    // Se ci sono dati, renderizza normalmente
+    console.log('✅ Dati esistenti - carica interfaccia');
     renderDashboard();
     renderRosa();
+    renderFormazione();
+    renderTopGiocatori();
     renderClassifica();
+    
+    console.log('✅ App inizializzata');
 }
+
 
 // NUOVA FUNZIONE: Messaggio di benvenuto
 function showWelcomeMessage() {
@@ -269,47 +271,57 @@ function showSection(sectionName) {
 
 
 
+// NON caricare rosa.json da file, usa SOLO localStorage
 async function loadData() {
-    if (USE_JSON_FILES) {
-        try {
-            // AGGIUNGI Date.now() per evitare cache
-            const rosaResponse = await fetch('rosa.json?v=' + Date.now());
-            const classificaResponse = await fetch('classifica.json?v=' + Date.now());
-            
-            if (rosaResponse.ok && classificaResponse.ok) {
-                const rosaData = await rosaResponse.json();
-                const classificaData = await classificaResponse.json();
-                
-                rosa = rosaData.players;
-                classifica = classificaData.teams;
-                
-                console.log('✓ Dati caricati da JSON');
-                console.log('✓ Primo giocatore:', rosa[0]);
-                console.log('✓ Stats primo giocatore:', rosa[0].stats); // ← AGGIUNGI QUESTO
-                
-                salvaDati();
-                return true;
-            }
-        } catch (error) {
-            console.error('Errore caricamento JSON:', error);
-        }
-    }
+    console.log('📦 Caricamento dati...');
     
-    // Fallback a localStorage
-    const savedRosa = localStorage.getItem('fantacalcio_rosa');
-    if (savedRosa) {
-        rosa = JSON.parse(savedRosa);
-        console.log('✓ Dati caricati da localStorage');
-        console.log('✓ Stats primo giocatore:', rosa[0].stats); // ← AGGIUNGI QUESTO
-    }
-    
+    // Carica classifica (predefinita)
     const savedClassifica = localStorage.getItem('fantacalcio_classifica');
     if (savedClassifica) {
         classifica = JSON.parse(savedClassifica);
+        console.log('✓ Classifica caricata da localStorage');
+    } else {
+        // Usa classifica predefinita
+        classifica = [
+    {nome: "Milan", punti: 20},
+    {nome: "Napoli", punti: 19},
+    {nome: "Inter", punti: 18},
+    {nome: "Roma", punti: 17},
+    {nome: "Juventus", punti: 16},
+    {nome: "Atalanta", punti: 15},
+    {nome: "Bologna", punti: 14},
+    {nome: "Lazio", punti: 13},
+    {nome: "Como", punti: 12},
+    {nome: "Fiorentina", punti: 11},
+    {nome: "Torino", punti: 10},
+    {nome: "Udinese", punti: 9},
+    {nome: "Genoa", punti: 8},
+    {nome: "Cagliari", punti: 7},
+    {nome: "Parma", punti: 6},
+    {nome: "Sassuolo", punti: 5},
+    {nome: "Lecce", punti: 4},
+    {nome: "Cremonese", punti: 3},
+    {nome: "Verona", punti: 2},
+    {nome: "Pisa", punti: 1}
+        ];
+        localStorage.setItem('fantacalcio_classifica', JSON.stringify(classifica));
+        console.log('✓ Classifica predefinita creata');
     }
     
-    return false;
+    // Carica rosa (SOLO da localStorage, NON da file)
+    const savedRosa = localStorage.getItem('fantacalcio_rosa');
+    if (savedRosa) {
+        const data = JSON.parse(savedRosa);
+        rosa = data.players || data;
+        console.log(`✓ Rosa caricata: ${rosa.length} giocatori`);
+    } else {
+        rosa = []; // Array vuoto = primo accesso
+        console.log('⚠️ Nessuna rosa trovata - primo avvio');
+    }
+    
+    console.log(`📊 Dati caricati: ${rosa.length} giocatori, ${classifica.length} squadre`);
 }
+
 
 
 function showLoadJsonPrompt() {
@@ -741,7 +753,7 @@ function renderFormazioneLocale() {
                 <strong style="display: block; color: #111827; font-size: 0.9rem; margin-bottom: 0.25rem;">${player.nome}</strong>
                 <span style="color: var(--text-secondary); font-size: 0.75rem;">${player.squadra}</span>
                 <div style="margin-top: 0.5rem; padding: 0.3rem 0.6rem; background: linear-gradient(135deg, var(--primary-color), #7c3aed); color: white; border-radius: 4px; font-weight: 700; font-size: 0.9rem;">
-                    ${(player.punteggio || 0).toFixed(1)}
+                    ${(player.punteggio || 0).toFixed(2)}
                 </div>
             </div>
         `;
@@ -1053,22 +1065,22 @@ function showPlayerDetails(nomeGiocatore) {
                     <div class="mini-stat">
                         <i class="fas fa-chart-line"></i>
                         <span class="mini-stat-label">xGoals</span>
-                        <span class="mini-stat-value">${(stats.xgoals || 0).toFixed(1)}</span>
+                        <span class="mini-stat-value">${(stats.xgoals || 0).toFixed(2)}</span>
                     </div>
                     <div class="mini-stat">
                         <i class="fas fa-arrow-trend-up"></i>
                         <span class="mini-stat-label">xAssist</span>
-                        <span class="mini-stat-value">${(stats.xassist || 0).toFixed(1)}</span>
+                        <span class="mini-stat-value">${(stats.xassist || 0).toFixed(2)}</span>
                     </div>
                     <div class="mini-stat">
                         <i class="fas fa-star-half-alt"></i>
                         <span class="mini-stat-label">Media Voto</span>
-                        <span class="mini-stat-value">${(stats.mediaVoto || 0).toFixed(1)}</span>
+                        <span class="mini-stat-value">${(stats.mediaVoto || 0).toFixed(2)}</span>
                     </div>
                     <div class="mini-stat">
                         <i class="fas fa-trophy"></i>
                         <span class="mini-stat-label">Fantavoto</span>
-                        <span class="mini-stat-value">${(stats.mediaFantavoto || 0).toFixed(1)}</span>
+                        <span class="mini-stat-value">${(stats.mediaFantavoto || 0).toFixed(2)}</span>
                     </div>
                 </div>
             </div>
@@ -1212,49 +1224,29 @@ function calcolaPunteggi() {
 
 // Calcola difficoltà (con fallback)
 function calcolaDifficolta(avversario) {
-    if (!avversario || !classifica) {
-        console.warn('Avversario o classifica mancante');
-        return 10;
-    }
-    
-    for (let team of classifica) {
-        if (team.nome === avversario) {
-            return team.punti || 10;
-        }
-    }
-    console.warn(`Avversario ${avversario} non trovato in classifica`);
-    return 10; // Default
+    const team = classifica.find(t => t.nome === avversario);
+    return team ? team.punti : 10;
 }
 
 // Calcola forza squadra (con fallback)
-function calcolaForzaSquadra(squadra) {
-    if (!squadra || !classifica) {
-        console.warn('Squadra o classifica mancante');
-        return 10;
-    }
-    
-    for (let team of classifica) {
-        if (team.nome === squadra) {
-            return team.punti || 10;
-        }
-    }
-    console.warn(`Squadra ${squadra} non trovata in classifica`);
-    return 10; // Default
+function calcolaForzaSquadra(nomeSquadra) {
+    const team = classifica.find(t => t.nome === nomeSquadra);
+    return team ? team.punti : 10;
 }
 
 // Calcola modificatore squadra (con fallback)
-function calcolaModificatoreSquadra(squadra, ruolo) {
-    const forza = calcolaForzaSquadra(squadra);
+function calcolaModificatoreSquadra(nomeSquadra, ruolo) {
+    const forza = calcolaForzaSquadra(nomeSquadra);
     
-    // Normalizza su scala 0.7 - 1.3 per base 20 (1-20)
-    let modificatoreBase = 0.7 + (forza - 1) * (0.6 / 19);
+    // Normalizza 0.7 - 1.3 per scala 1-20
+    let modificatoreBase = 0.7 + (forza - 1) * (0.6 / (20 - 1));
     
     // Aggiusta per ruolo
     switch(ruolo) {
-        case 0: return modificatoreBase * 1.1;  // PORTIERE
-        case 1: return modificatoreBase * 1.05; // DIFENSORE
-        case 2: return modificatoreBase;        // CENTROCAMPISTA
-        case 3: return modificatoreBase * 0.95; // ATTACCANTE
+        case 0: return modificatoreBase * 1.1;   // Portiere
+        case 1: return modificatoreBase * 1.05;  // Difensore
+        case 2: return modificatoreBase;          // Centrocampista
+        case 3: return modificatoreBase * 0.95;  // Attaccante
         default: return modificatoreBase;
     }
 }
@@ -1262,104 +1254,86 @@ function calcolaModificatoreSquadra(squadra, ruolo) {
 
 // PORTIERE (come in C)
 function calcPortiere(player) {
-    if (player.infortunato) {
-        return 0.0;
-    }
+    if (player.infortunato) return 0.0;
     
-    const stats = player.stats || {};
+    const s = player.stats;
     
-    let baseScore = (stats.goals || 0) * 15.0 +
-                    (stats.assist || 0) * 8.0 +
-                    (stats.cleanSheet || 0) * 6.0 +
-                    (stats.xgoals || 0) * 3.0 +
-                    (stats.xassist || 0) * 2.0 +
-                    (stats.mediaVoto || 0) * 4.0 +
-                    (stats.mediaFantavoto || 0) * 5.0 -
-                    (stats.golSubiti || 0) * 1.0;
+    // Base score IDENTICO al C
+    let baseScore = (s.goals * 15.0) + 
+                    (s.assist * 8.0) + 
+                    (s.cleanSheet * 6.0) +
+                    (s.xgoals * 3.0) + 
+                    (s.xassist * 2.0) + 
+                    (s.mediaVoto * 4.0) + 
+                    (s.mediaFantavoto * 5.0) -
+                    (s.golSubiti * 1.0);
     
-    if ((stats.minuti || 0) > 60) {
-        baseScore += 2.0;
-    }
+    if (s.minuti > 60) baseScore += 2.0;
     
-    const modificatoreSquadra = calcolaModificatoreSquadra(player.squadra, player.ruolo);
-    const modificatoreDifficolta = 1.0 + (PUNTO_NEUTRO - player.difficolta) * COEFF_PORTIERE;
+    const modSquadra = calcolaModificatoreSquadra(player.squadra, player.ruolo);
+    const modDifficolta = 1.0 + (PUNTONEUTRO - player.difficolta) * COEFFPORTIERE;
     
-    return baseScore * (player.titolarita / 100.0) * modificatoreDifficolta * modificatoreSquadra;
+    return baseScore * (player.titolarita / 100.0) * modDifficolta * modSquadra;
 }
 
-// DIFENSORE (come in C)
 function calcDifensore(player) {
-    if (player.infortunato) {
-        return 0.0;
-    }
+    if (player.infortunato) return 0.0;
     
-    const stats = player.stats || {};
+    const s = player.stats;
     
-    let baseScore = (stats.goals || 0) * 12.0 +
-                    (stats.assist || 0) * 6.0 +
-                    (stats.xgoals || 0) * 2.5 +
-                    (stats.xassist || 0) * 1.5 +
-                    (stats.mediaVoto || 0) * 3.0 +
-                    (stats.mediaFantavoto || 0) * 4.0;
+    let baseScore = (s.goals * 12.0) + 
+                    (s.assist * 6.0) + 
+                    (s.xgoals * 2.5) + 
+                    (s.xassist * 1.5) + 
+                    (s.mediaVoto * 3.0) + 
+                    (s.mediaFantavoto * 4.0);
     
-    if ((stats.minuti || 0) > 60) {
-        baseScore += 1.5;
-    }
+    if (s.minuti > 60) baseScore += 1.5;
     
-    const modificatoreSquadra = calcolaModificatoreSquadra(player.squadra, player.ruolo);
-    const modificatoreDifficolta = 1.0 + (PUNTO_NEUTRO - player.difficolta) * COEFF_DIFENSORE;
+    const modSquadra = calcolaModificatoreSquadra(player.squadra, player.ruolo);
+    const modDifficolta = 1.0 + (PUNTONEUTRO - player.difficolta) * COEFFDIFENSORE;
     
-    return baseScore * (player.titolarita / 100.0) * modificatoreDifficolta * modificatoreSquadra;
+    return baseScore * (player.titolarita / 100.0) * modDifficolta * modSquadra;
 }
 
-// CENTROCAMPISTA (come in C)
 function calcCentrocampista(player) {
-    if (player.infortunato) {
-        return 0.0;
-    }
+    if (player.infortunato) return 0.0;
     
-    const stats = player.stats || {};
+    const s = player.stats;
     
-    let baseScore = (stats.goals || 0) * 10.0 +
-                    (stats.assist || 0) * 5.0 +
-                    (stats.xgoals || 0) * 2.0 +
-                    (stats.xassist || 0) * 1.0 +
-                    (stats.mediaVoto || 0) * 2.5 +
-                    (stats.mediaFantavoto || 0) * 3.5;
+    let baseScore = (s.goals * 10.0) + 
+                    (s.assist * 5.0) + 
+                    (s.xgoals * 2.0) + 
+                    (s.xassist * 1.0) + 
+                    (s.mediaVoto * 2.5) + 
+                    (s.mediaFantavoto * 3.5);
     
-    if ((stats.minuti || 0) > 60) {
-        baseScore += 1.0;
-    }
+    if (s.minuti > 60) baseScore += 1.0;
     
-    const modificatoreSquadra = calcolaModificatoreSquadra(player.squadra, player.ruolo);
-    const modificatoreDifficolta = 1.0 + (PUNTO_NEUTRO - player.difficolta) * COEFF_CENTROCAMPISTA;
+    const modSquadra = calcolaModificatoreSquadra(player.squadra, player.ruolo);
+    const modDifficolta = 1.0 + (PUNTONEUTRO - player.difficolta) * COEFFCENTROCAMPISTA;
     
-    return baseScore * (player.titolarita / 100.0) * modificatoreDifficolta * modificatoreSquadra;
+    return baseScore * (player.titolarita / 100.0) * modDifficolta * modSquadra;
 }
 
-// ATTACCANTE (come in C)
 function calcAttaccante(player) {
-    if (player.infortunato) {
-        return 0.0;
-    }
+    if (player.infortunato) return 0.0;
     
-    const stats = player.stats || {};
+    const s = player.stats;
     
-    let baseScore = (stats.goals || 0) * 8.0 +
-                    (stats.assist || 0) * 4.0 +
-                    (stats.xgoals || 0) * 1.5 +
-                    (stats.xassist || 0) * 0.8 +
-                    (stats.mediaVoto || 0) * 2.0 +
-                    (stats.mediaFantavoto || 0) * 3.0;
+    let baseScore = (s.goals * 8.0) + 
+                    (s.assist * 4.0) + 
+                    (s.xgoals * 1.5) + 
+                    (s.xassist * 0.8) + 
+                    (s.mediaVoto * 2.0) + 
+                    (s.mediaFantavoto * 3.0);
     
-    if ((stats.minuti || 0) > 60) {
-        baseScore += 0.5;
-    }
+    if (s.minuti > 60) baseScore += 0.5;
     
-    const modificatoreSquadra = calcolaModificatoreSquadra(player.squadra, player.ruolo);
-    const modificatoreDifficolta = 1.0 + (PUNTO_NEUTRO - player.difficolta) * COEFF_ATTACCANTE;
+    const modSquadra = calcolaModificatoreSquadra(player.squadra, player.ruolo);
+    const modDifficolta = 1.0 + (PUNTONEUTRO - player.difficolta) * COEFFATTACCANTE;
     
-    return baseScore * (player.titolarita / 100.0) * modificatoreDifficolta * modificatoreSquadra;
+    return baseScore * (player.titolarita / 100.0) * modDifficolta * modSquadra;
 }
 
 // Salva Dati
@@ -2460,8 +2434,8 @@ function loadPlayerForEdit() {
     document.getElementById('editMinuti').value = stats.minuti || 0;
     document.getElementById('editCleanSheet').value = stats.cleanSheet || 0;
     document.getElementById('editGolSubiti').value = stats.golSubiti || 0;
-    document.getElementById('editXgoals').value = (stats.xgoals || 0).toFixed(1);
-    document.getElementById('editXassist').value = (stats.xassist || 0).toFixed(1);
+    document.getElementById('editXgoals').value = (stats.xgoals || 0).toFixed(2);
+    document.getElementById('editXassist').value = (stats.xassist || 0).toFixed(2);
     document.getElementById('editMediaVoto').value = (stats.mediaVoto || 0).toFixed(2);
     document.getElementById('editMediaFantavoto').value = (stats.mediaFantavoto || 0).toFixed(2);
     
@@ -2825,13 +2799,26 @@ document.addEventListener('DOMContentLoaded', function() {
 // ============================================
 
 const DEFAULT_CLASSIFICA = [
-    {nome: "Napoli", punti: 20}, {nome: "Inter", punti: 18}, {nome: "Juventus", punti: 17},
-    {nome: "Milan", punti: 16}, {nome: "Lazio", punti: 16}, {nome: "Atalanta", punti: 15},
-    {nome: "Roma", punti: 14}, {nome: "Fiorentina", punti: 13}, {nome: "Torino", punti: 12},
-    {nome: "Bologna", punti: 11}, {nome: "Udinese", punti: 10}, {nome: "Verona", punti: 10},
-    {nome: "Empoli", punti: 9}, {nome: "Monza", punti: 8}, {nome: "Genoa", punti: 8},
-    {nome: "Lecce", punti: 7}, {nome: "Parma", punti: 6}, {nome: "Cagliari", punti: 5},
-    {nome: "Venezia", punti: 4}, {nome: "Como", punti: 3}
+    {nome: "Milan", punti: 20},
+    {nome: "Napoli", punti: 19},
+    {nome: "Inter", punti: 18},
+    {nome: "Roma", punti: 17},
+    {nome: "Juventus", punti: 16},
+    {nome: "Atalanta", punti: 15},
+    {nome: "Bologna", punti: 14},
+    {nome: "Lazio", punti: 13},
+    {nome: "Como", punti: 12},
+    {nome: "Fiorentina", punti: 11},
+    {nome: "Torino", punti: 10},
+    {nome: "Udinese", punti: 9},
+    {nome: "Genoa", punti: 8},
+    {nome: "Cagliari", punti: 7},
+    {nome: "Parma", punti: 6},
+    {nome: "Sassuolo", punti: 5},
+    {nome: "Lecce", punti: 4},
+    {nome: "Cremonese", punti: 3},
+    {nome: "Verona", punti: 2},
+    {nome: "Pisa", punti: 1}
 ];
 
 function loadGestioneEditor() {
@@ -2881,4 +2868,405 @@ function populatePlayerSelect() {
 function getRuoloName(ruolo) {
     const nomi = ['Portiere', 'Difensore', 'Centrocampista', 'Attaccante'];
     return nomi[ruolo] || 'Sconosciuto';
+}
+// ============================================
+// WIZARD SETUP CON FORM MANUALE
+// ============================================
+
+function checkFirstTime() {
+    const hasData = localStorage.getItem('fantacalcio_rosa');
+    
+    if (!hasData) {
+        // Carica classifica predefinita se non esiste
+        if (!localStorage.getItem('fantacalcio_classifica')) {
+            classifica = DEFAULT_CLASSIFICA;
+            localStorage.setItem('fantacalcio_classifica', JSON.stringify(classifica));
+        }
+        showSetupWizard();
+        return true;
+    }
+    return false;
+}
+
+function showSetupWizard() {
+    const wizardHTML = `
+        <div id="setupWizard" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 10000; display: flex; align-items: center; justify-content: center; overflow-y: auto; padding: 2rem;">
+            <div style="background: white; padding: 3rem; border-radius: 16px; max-width: 900px; width: 90%; box-shadow: 0 20px 60px rgba(0,0,0,0.5); max-height: 90vh; overflow-y: auto;">
+                
+                <!-- Step 1: Benvenuto -->
+                <div id="wizardStep1" class="wizard-step">
+                    <div style="text-align: center; margin-bottom: 2rem;">
+                        <i class="fas fa-futbol" style="font-size: 4rem; color: var(--primary-color); margin-bottom: 1rem;"></i>
+                        <h1 style="color: var(--primary-color); margin-bottom: 1rem;">Benvenuto!</h1>
+                        <p style="font-size: 1.2rem; color: var(--text-secondary);">Crea la tua rosa per iniziare</p>
+                    </div>
+                    
+                    <div style="background: linear-gradient(135deg, #e0f2fe, #dbeafe); padding: 2rem; border-radius: 12px; margin-bottom: 2rem;">
+                        <h3 style="margin-bottom: 1rem;"><i class="fas fa-info-circle"></i> Inizia da zero</h3>
+                        <p style="margin-bottom: 1rem;">Importa i tuoi giocatori per gestire la tua squadra.</p>
+                    </div>
+                    
+                    <button class="btn btn-primary" onclick="showWizardStep(2)" style="width: 100%; padding: 1.25rem; font-size: 1.1rem;">
+                        <i class="fas fa-arrow-right"></i> Inizia Setup
+                    </button>
+                </div>
+                
+                <!-- Step 2: Scelta metodo -->
+                <div id="wizardStep2" class="wizard-step" style="display: none;">
+                    <h2 style="color: var(--primary-color); margin-bottom: 1.5rem;">
+                        <i class="fas fa-users"></i> Come vuoi creare la rosa?
+                    </h2>
+                    
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin: 2rem 0;">
+                        <div onclick="selectImportMethod('csv')" class="method-card" style="cursor: pointer; padding: 2rem; border: 3px solid #e5e7eb; border-radius: 12px; text-align: center; transition: all 0.3s;">
+                            <i class="fas fa-file-csv" style="font-size: 3rem; color: var(--success-color); margin-bottom: 1rem;"></i>
+                            <h3 style="margin-bottom: 0.5rem;">Importa CSV</h3>
+                            <p style="color: var(--text-secondary); font-size: 0.9rem;">Carica file con tutti i dati</p>
+                        </div>
+                        
+                        <div onclick="selectImportMethod('manual')" class="method-card" style="cursor: pointer; padding: 2rem; border: 3px solid #e5e7eb; border-radius: 12px; text-align: center; transition: all 0.3s;">
+                            <i class="fas fa-plus-circle" style="font-size: 3rem; color: var(--primary-color); margin-bottom: 1rem;"></i>
+                            <h3 style="margin-bottom: 0.5rem;">Aggiungi Manualmente</h3>
+                            <p style="color: var(--text-secondary); font-size: 0.9rem;">Inserisci giocatori uno per uno</p>
+                        </div>
+                    </div>
+                    
+                    <button class="btn" onclick="showWizardStep(1)" style="width: 100%; margin-top: 1rem;">
+                        <i class="fas fa-arrow-left"></i> Indietro
+                    </button>
+                </div>
+                
+                <!-- Step 3: CSV Import -->
+                <div id="wizardStep3" class="wizard-step" style="display: none;">
+                    <h2 style="color: var(--primary-color); margin-bottom: 1rem;">
+                        <i class="fas fa-file-csv"></i> Importa da CSV
+                    </h2>
+                    
+                    <div style="background: #fef3c7; padding: 1.5rem; border-radius: 12px; margin-bottom: 1.5rem;">
+                        <h4 style="margin-bottom: 0.5rem;"><i class="fas fa-info-circle"></i> Formato CSV:</h4>
+                        <code style="display: block; background: white; padding: 1rem; border-radius: 8px; font-size: 0.8rem; overflow-x: auto;">
+Nome;Squadra;Ruolo;Goals;Assist;Minuti;CleanSheet;GolSubiti;xGoals;xAssist;MediaVoto;MediaFantavoto;Titolarita;Infortunato;Avversario
+                        </code>
+                    </div>
+                    
+                    <div class="file-upload" style="margin: 2rem 0;">
+                        <input type="file" id="wizardStatsCSV" accept=".csv" hidden>
+                        <label for="wizardStatsCSV" style="cursor: pointer; display: block; padding: 3rem; border: 3px dashed var(--success-color); border-radius: 12px; text-align: center;">
+                            <i class="fas fa-cloud-upload-alt" style="font-size: 4rem; color: var(--success-color); display: block; margin-bottom: 1rem;"></i>
+                            <span style="font-weight: 700; font-size: 1.1rem;">Clicca per caricare CSV</span>
+                        </label>
+                    </div>
+                    
+                    <div style="display: flex; gap: 1rem;">
+                        <button class="btn" onclick="showWizardStep(2)" style="flex: 1;">Indietro</button>
+                        <button class="btn btn-success" id="wizardFinishCSV" disabled onclick="finishWizard()" style="flex: 2;">Completa</button>
+                    </div>
+                </div>
+                
+                <!-- Step 4: Form Manuale -->
+                <div id="wizardStep4" class="wizard-step" style="display: none;">
+                    <h2 style="color: var(--primary-color); margin-bottom: 1rem;">
+                        <i class="fas fa-plus-circle"></i> Aggiungi Giocatore
+                    </h2>
+                    
+                    <div id="manualPlayersList" style="background: #f9fafb; padding: 1rem; border-radius: 8px; margin-bottom: 1rem; max-height: 200px; overflow-y: auto;">
+                        <p style="text-align: center; color: var(--text-secondary);" id="emptyPlayersMsg">Nessun giocatore aggiunto</p>
+                        <div id="addedPlayersList"></div>
+                    </div>
+                    
+                    <form id="addPlayerForm" style="background: #fff; padding: 1.5rem; border-radius: 12px; border: 2px solid var(--primary-color); margin-bottom: 1rem;">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                            <div>
+                                <label style="font-weight: 600; display: block; margin-bottom: 0.5rem;">Nome *</label>
+                                <input type="text" id="playerNome" required style="width: 100%; padding: 0.75rem; border: 1px solid #ddd; border-radius: 8px;">
+                            </div>
+                            <div>
+                                <label style="font-weight: 600; display: block; margin-bottom: 0.5rem;">Squadra *</label>
+                                <select id="playerSquadra" required style="width: 100%; padding: 0.75rem; border: 1px solid #ddd; border-radius: 8px;">
+                                    ${DEFAULT_CLASSIFICA.map(t => `<option value="${t.nome}">${t.nome}</option>`).join('')}
+                                </select>
+                            </div>
+                            <div>
+                                <label style="font-weight: 600; display: block; margin-bottom: 0.5rem;">Ruolo *</label>
+                                <select id="playerRuolo" required style="width: 100%; padding: 0.75rem; border: 1px solid #ddd; border-radius: 8px;">
+                                    <option value="0">Portiere</option>
+                                    <option value="1">Difensore</option>
+                                    <option value="2">Centrocampista</option>
+                                    <option value="3">Attaccante</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label style="font-weight: 600; display: block; margin-bottom: 0.5rem;">Titolarità %</label>
+                                <input type="number" id="playerTitolarita" value="87.5" min="0" max="100" step="12.5" style="width: 100%; padding: 0.75rem; border: 1px solid #ddd; border-radius: 8px;">
+                            </div>
+                        </div>
+                        
+                        <h4 style="margin: 1.5rem 0 1rem 0; color: var(--primary-color);">Statistiche Complete</h4>
+<div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem;">
+    <!-- Riga 1 -->
+    <div>
+        <label style="font-weight: 600; font-size: 0.9rem;">Goals</label>
+        <input type="number" id="playerGoals" value="0" min="0" style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 6px;">
+    </div>
+    <div>
+        <label style="font-weight: 600; font-size: 0.9rem;">Assist</label>
+        <input type="number" id="playerAssist" value="0" min="0" style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 6px;">
+    </div>
+    <div>
+        <label style="font-weight: 600; font-size: 0.9rem;">Minuti</label>
+        <input type="number" id="playerMinuti" value="0" min="0" step="90" style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 6px;">
+    </div>
+    
+    <!-- Riga 2 -->
+    <div>
+        <label style="font-weight: 600; font-size: 0.9rem;">xGoals</label>
+        <input type="number" id="playerXGoals" value="0" min="0" step="0.1" style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 6px;">
+    </div>
+    <div>
+        <label style="font-weight: 600; font-size: 0.9rem;">xAssist</label>
+        <input type="number" id="playerXAssist" value="0" min="0" step="0.1" style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 6px;">
+    </div>
+    <div>
+        <label style="font-weight: 600; font-size: 0.9rem;">Media Voto</label>
+        <input type="number" id="playerMediaVoto" value="6.0" min="0" max="10" step="0.1" style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 6px;">
+    </div>
+    
+    <!-- Riga 3 -->
+    <div>
+        <label style="font-weight: 600; font-size: 0.9rem;">Media Fantavoto</label>
+        <input type="number" id="playerMediaFV" value="6.0" min="0" max="10" step="0.1" style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 6px;">
+    </div>
+    <div>
+        <label style="font-weight: 600; font-size: 0.9rem;">Clean Sheet</label>
+        <input type="number" id="playerCS" value="0" min="0" style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 6px;">
+    </div>
+    <div>
+        <label style="font-weight: 600; font-size: 0.9rem;">Gol Subiti</label>
+        <input type="number" id="playerGolSubiti" value="0" min="0" style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 6px;">
+    </div>
+    
+    <!-- Riga 4 (Altri) -->
+    <div>
+        <label style="font-weight: 600; font-size: 0.9rem;">Avversario</label>
+        <select id="playerAvversario" style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 6px;">
+            ${DEFAULT_CLASSIFICA.map(t => `<option value="${t.nome}">${t.nome}</option>`).join('')}
+        </select>
+    </div>
+    <div>
+        <label style="font-weight: 600; font-size: 0.9rem;">Infortunato</label>
+        <select id="playerInfortunato" style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 6px;">
+            <option value="false">No</option>
+            <option value="true">Sì</option>
+        </select>
+    </div>
+    <div style="display: flex; align-items: center; justify-content: center; padding-top: 1.5rem;">
+        <label style="font-size: 0.85rem; color: var(--text-secondary); text-align: center;">
+            <i class="fas fa-info-circle"></i> 9 campi statistici
+        </label>
+    </div>
+</div>
+
+                        
+                        <button type="button" onclick="addPlayerManual()" class="btn btn-primary" style="width: 100%; margin-top: 1.5rem; padding: 1rem;">
+                            <i class="fas fa-plus"></i> Aggiungi Giocatore
+                        </button>
+                    </form>
+                    
+                    <div style="display: flex; gap: 1rem;">
+                        <button class="btn" onclick="showWizardStep(2)" style="flex: 1;">Indietro</button>
+                        <button class="btn btn-success" id="wizardFinishManual" onclick="finishWizardManual()" style="flex: 2;" disabled>
+                            <i class="fas fa-check"></i> Completa e Scarica
+                        </button>
+                    </div>
+                </div>
+                
+            </div>
+        </div>
+    `;
+    
+    document.body.insertAdjacentHTML('beforeend', wizardHTML);
+}
+
+function selectImportMethod(method) {
+    if (method === 'csv') {
+        showWizardStep(3);
+    } else if (method === 'manual') {
+        showWizardStep(4);
+    }
+}
+
+function showWizardStep(step) {
+    document.querySelectorAll('.wizard-step').forEach(s => s.style.display = 'none');
+    const stepEl = document.getElementById(`wizardStep${step}`);
+    if (stepEl) stepEl.style.display = 'block';
+}
+
+// Array temporaneo per wizard
+let tempRosa = [];
+
+function addPlayerManual() {
+    const nome = document.getElementById('playerNome').value.trim();
+    const squadra = document.getElementById('playerSquadra').value;
+    const ruolo = parseInt(document.getElementById('playerRuolo').value);
+    const titolarita = parseFloat(document.getElementById('playerTitolarita').value) || 87.5;
+    const avversario = document.getElementById('playerAvversario').value;
+    const infortunato = document.getElementById('playerInfortunato').value === 'true';
+    
+    if (!nome) {
+        showNotification('❌ Inserisci il nome!', 'error');
+        return;
+    }
+    
+    // ⚠️ CONTROLLO VALORI CON FALLBACK
+    const player = {
+        nome, 
+        squadra, 
+        ruolo, 
+        titolarita: parseFloat(titolarita.toFixed(2)),
+        avversario,
+        difficolta: calcolaDifficolta(avversario),
+        punteggio: 0,
+        infortunato,
+        disponibile: !infortunato,
+        stats: {
+            goals: parseInt(document.getElementById('playerGoals').value) || 0,
+            assist: parseInt(document.getElementById('playerAssist').value) || 0,
+            minuti: parseInt(document.getElementById('playerMinuti').value) || 0,
+            xgoals: parseFloat((parseFloat(document.getElementById('playerXGoals').value) || 0).toFixed(2)),
+            xassist: parseFloat((parseFloat(document.getElementById('playerXAssist').value) || 0).toFixed(2)),
+            mediaVoto: parseFloat((parseFloat(document.getElementById('playerMediaVoto').value) || 6.0).toFixed(2)),
+            mediaFantavoto: parseFloat((parseFloat(document.getElementById('playerMediaFV').value) || 6.0).toFixed(2)),
+            cleanSheet: parseInt(document.getElementById('playerCS').value) || 0,
+            golSubiti: parseInt(document.getElementById('playerGolSubiti').value) || 0
+        }
+    };
+    
+    // DEBUG: Verifica stats
+    console.log('Player aggiunto:', player.nome, 'Stats:', player.stats);
+    
+    tempRosa.push(player);
+    updateAddedPlayersList();
+    document.getElementById('addPlayerForm').reset();
+    document.getElementById('playerNome').focus();
+    document.getElementById('wizardFinishManual').disabled = false;
+    showNotification(`✅ ${nome} aggiunto! (${tempRosa.length})`, 'success');
+}
+
+
+
+function updateAddedPlayersList() {
+    const container = document.getElementById('addedPlayersList');
+    const emptyMsg = document.getElementById('emptyPlayersMsg');
+    
+    if (tempRosa.length === 0) {
+        emptyMsg.style.display = 'block';
+        container.innerHTML = '';
+        return;
+    }
+    
+    emptyMsg.style.display = 'none';
+    const ruoliMap = ['P', 'D', 'C', 'A'];
+    
+    container.innerHTML = tempRosa.map((p, i) => `
+        <div style="display: flex; justify-content: space-between; padding: 0.75rem; background: white; border-radius: 8px; margin-bottom: 0.5rem; border: 1px solid #e5e7eb;">
+            <div><strong>${p.nome}</strong> <span style="color: var(--text-secondary);">(${ruoliMap[p.ruolo]}) - ${p.squadra}</span></div>
+            <button onclick="removePlayer(${i})" class="btn btn-sm" style="background: var(--danger-color); color: white; padding: 0.5rem;"><i class="fas fa-trash"></i></button>
+        </div>
+    `).join('');
+}
+
+function removePlayer(index) {
+    tempRosa.splice(index, 1);
+    updateAddedPlayersList();
+    if (tempRosa.length === 0) document.getElementById('wizardFinishManual').disabled = true;
+    showNotification('🗑️ Rimosso', 'info');
+}
+
+function finishWizardManual() {
+    if (tempRosa.length === 0) {
+        showNotification('❌ Aggiungi almeno 1 giocatore!', 'error');
+        return;
+    }
+    
+    rosa = tempRosa;
+    localStorage.setItem('fantacalcio_rosa', JSON.stringify({players: rosa}));
+    localStorage.setItem('fantacalcio_setup_completed', 'true');
+    
+    downloadRosa();
+    document.getElementById('setupWizard').remove();
+    showNotification(`✅ Rosa creata! File scaricato.`, 'success');
+    location.reload();
+}
+
+function downloadRosa() {
+    const blob = new Blob([JSON.stringify({players: rosa}, null, 2)], {type: 'application/json'});
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'mia_rosa.json';
+    link.click();
+    URL.revokeObjectURL(url);
+}
+
+function finishWizard() {
+    localStorage.setItem('fantacalcio_setup_completed', 'true');
+    document.getElementById('setupWizard').remove();
+    showNotification('✅ Setup completato!', 'success');
+    location.reload();
+}
+
+// Handler CSV wizard
+document.addEventListener('change', function(e) {
+    if (e.target.id === 'wizardStatsCSV') {
+        handleWizardStatsCSV(e.target.files[0]);
+    }
+});
+
+async function handleWizardStatsCSV(file) {
+    try {
+        const text = await file.text();
+        const lines = text.split('\n').filter(line => line.trim());
+        const dataLines = lines.slice(1);
+        
+        rosa = [];
+        dataLines.forEach(line => {
+            const parts = line.split(';').map(p => p.trim());
+            if (parts.length < 15) return;
+            
+            const [nome, squadra, ruoloStr, goals, assist, minuti, cleanSheet, golSubiti, 
+                   xgoals, xassist, mediaVoto, mediaFantavoto, titolarita, infortunatoStr, avversario] = parts;
+            
+            let ruolo = 0;
+            if (ruoloStr === 'D') ruolo = 1;
+            else if (ruoloStr === 'C') ruolo = 2;
+            else if (ruoloStr === 'A') ruolo = 3;
+            
+            rosa.push({
+                nome, squadra, ruolo,
+                punteggio: 0,
+                titolarita: parseFloat(titolarita) || 0,
+                avversario, difficolta: 10,
+                infortunato: infortunatoStr.toLowerCase() === 'true',
+                disponibile: infortunatoStr.toLowerCase() !== 'true',
+                stats: {
+                    goals: parseInt(goals) || 0,
+                    assist: parseInt(assist) || 0,
+                    minuti: parseInt(minuti) || 0,
+                    cleanSheet: parseInt(cleanSheet) || 0,
+                    golSubiti: parseInt(golSubiti) || 0,
+                    xgoals: parseFloat(xgoals) || 0,
+                    xassist: parseFloat(xassist) || 0,
+                    mediaVoto: parseFloat(mediaVoto) || 0,
+                    mediaFantavoto: parseFloat(mediaFantavoto) || 0
+                }
+            });
+        });
+        
+        localStorage.setItem('fantacalcio_rosa', JSON.stringify({players: rosa}));
+        document.getElementById('wizardFinishCSV').disabled = false;
+        showNotification(`✅ ${rosa.length} giocatori caricati!`, 'success');
+    } catch (error) {
+        console.error('Errore CSV:', error);
+        showNotification('❌ Errore import CSV', 'error');
+    }
 }
