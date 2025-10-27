@@ -39,10 +39,7 @@
     const ruoliMap = ["Portiere", "Difensore", "Centrocampista", "Attaccante"];
 
     // Inizializzazione
-    document.addEventListener('DOMContentLoaded', function() {
-        initializeApp();
-        setupEventListeners();
-    });
+
 
     function checkScoreOrigin() {
         const fromC = rosa.some(p => p.punteggio > 0);
@@ -133,13 +130,7 @@
     // FIX MOBILE BUTTON - Rimuove style inline
     // ============================================
 
-    document.addEventListener('DOMContentLoaded', function() {
-        const btn = document.getElementById('mobileMenuBtn');
-        if (btn) {
-            btn.removeAttribute('style'); // Rimuove completamente lo style inline
-            console.log('✅ Style inline rimosso dal pulsante mobile');
-        }
-    });
+    
 
         console.log('✅ App inizializzata');    
     }
@@ -270,46 +261,45 @@
 
 
     function showSection(sectionName) {
-        
-        console.log('📄 Cambio sezione:', sectionName);
-        
-        // Nascondi tutte le sezioni
-        document.querySelectorAll('.content-section').forEach(section => {
-            section.classList.remove('active');
-        });
-        
-        // Mostra sezione richiesta
-        const targetSection = document.getElementById(sectionName);
-        if (targetSection) {
-            targetSection.classList.add('active');
-            
-            // Carica contenuto specifico DOPO aver mostrato la sezione
-            if (sectionName === 'gestione') {
-                loadGestioneEditor();
-            } else if (sectionName === 'classifica') {
-                renderClassifica();
-            } else if (sectionName === 'rosa') {
-                renderRosa();
-            } else if (sectionName === 'formazione') {
-                renderFormazione();
-            } else if (sectionName === 'topGiocatori') {
-                renderTopGiocatori();
-            } else if (sectionName === 'dashboard') {
-                renderDashboard();
-            }
-        } else {
-            console.error('❌ Sezione non trovata:', sectionName);
-        }
-        
-        // Aggiorna menu attivo
-        document.querySelectorAll('.nav-item').forEach(item => {
-            item.classList.remove('active');
-            if (item.dataset.section === sectionName) {
-                item.classList.add('active');
-            }
-        });
-        
+    console.log('Cambio sezione:', sectionName);
+    
+    // Nascondi tutte le sezioni
+    document.querySelectorAll('.content-section').forEach(section => {
+        section.classList.remove('active');
+    });
+    
+    // Mostra sezione richiesta
+    const targetSection = document.getElementById(sectionName);
+    if (targetSection) {
+        targetSection.classList.add('active');
     }
+    
+    // Carica contenuto specifico DOPO aver mostrato la sezione
+    if (sectionName === 'gestione') {
+        renderGestioneRosa(); // ⭐ AGGIUNGI QUESTA RIGA SE MANCA
+        populatePlayerSelect();
+        renderClassificaEditor();
+    } else if (sectionName === 'classifica') {
+        renderClassifica();
+    } else if (sectionName === 'rosa') {
+        renderRosa();
+    } else if (sectionName === 'formazione') {
+        renderFormazione();
+    } else if (sectionName === 'topGiocatori') {
+        renderTopGiocatori();
+    } else if (sectionName === 'dashboard') {
+        renderDashboard();
+    }
+    
+    // Aggiorna menu attivo
+    document.querySelectorAll('.nav-item').forEach(item => {
+        item.classList.remove('active');
+        if (item.dataset.section === sectionName) {
+            item.classList.add('active');
+        }
+    });
+}
+
 
 
 
@@ -385,7 +375,7 @@
             <p style="margin-bottom: 1.5rem; color: var(--text-secondary);">
                 Seleziona rosa.json dal programma C
             </p>
-            <button onclick="document.getElementById('loadRosaJson').click()" 
+            <button data-action="load-json" 
                     class="btn btn-primary">
                 <i class="fas fa-file-import"></i> Carica rosa.json
             </button>
@@ -468,7 +458,7 @@
             showWelcomeMessage();
         } else {
             const topPlayersHtml = topPlayers.map((player, index) => `
-                <div class="player-item" onclick="showPlayerDetails('${player.nome}')">
+                <div class="player-item" data-player="${player.nome}">
                     <div class="player-info">
                         <div class="player-avatar">${index + 1}</div>
                         <div>
@@ -505,28 +495,34 @@
     // Rosa Rendering
     function renderRosa() {
         const tbody = document.getElementById('rosaTableBody');
+    
+    if (!tbody) {
+        console.error('Elemento rosaTableBody non trovato!');
+        return;
+    }
+    
+    if (rosa.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="9" style="text-align: center; padding: 3rem;">
+                    <div style="display: flex; flex-direction: column; align-items: center; gap: 1rem;">
+                        <i class="fas fa-users" style="font-size: 3rem; color: var(--text-secondary);"></i>
+                        <p style="color: var(--text-secondary); margin: 0;">Nessun giocatore nella rosa.</p>
+                        <button class="btn btn-primary" data-action="import">
+                            <i class="fas fa-file-import"></i> Importa Dati
+                        </button>
+                    </div>
+                </td>
+            </tr>
+        `;
         
-        if (!tbody) {
-            console.error('Elemento rosaTableBody non trovato!');
-            return;
+        // ⭐ Aggiungi listener invece di onclick
+        const importBtn = tbody.querySelector('[data-action="import"]');
+        if (importBtn) {
+            importBtn.addEventListener('click', () => showSection('import'));
         }
-        
-        if (rosa.length === 0) {
-            tbody.innerHTML = `
-                <tr>
-                    <td colspan="9" style="text-align: center; padding: 3rem;">
-                        <div style="display: flex; flex-direction: column; align-items: center; gap: 1rem;">
-                            <i class="fas fa-users" style="font-size: 3rem; color: var(--text-secondary);"></i>
-                            <p style="color: var(--text-secondary); margin: 0;">Nessun giocatore nella rosa.</p>
-                            <button class="btn btn-primary" onclick="showSection('import')">
-                                <i class="fas fa-file-import"></i> Importa Dati
-                            </button>
-                        </div>
-                    </td>
-                </tr>
-            `;
-            return;
-        }
+        return;
+    }
         
         // APPLICA ORDINAMENTO
         const sortedRosa = [...rosa].sort((a, b) => {
@@ -569,61 +565,77 @@
         });
         
         const html = sortedRosa.map((player, index) => `
-            <tr onclick="showPlayerDetails('${player.nome}')">
-                <td>
-                    <div style="display: flex; align-items: center; gap: 0.75rem;">
-                        <span style="font-size: 0.9rem; width: 25px; color: var(--text-secondary); font-weight: 600;">#${index + 1}</span>
-                        <strong>${player.nome}</strong>
+        <tr data-player="${player.nome}" style="cursor: pointer;">
+            <td>
+                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                    <span style="font-size: 0.9rem; width: 25px; color: var(--text-secondary); font-weight: 600;">#${index + 1}</span>
+                    <strong>${player.nome}</strong>
+                </div>
+            </td>
+            <td><span class="badge badge-info">${ruoliMap[player.ruolo]}</span></td>
+            <td>
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    <i class="fas fa-shield-alt" style="color: #3b82f6; font-size: 0.9rem;"></i>
+                    <span>${player.squadra}</span>
+                </div>
+            </td>
+            <td><span class="score-highlight">${(player.punteggio || 0).toFixed(2)}</span></td>
+            <td>
+                <div class="progress-bar-container">
+                    <div class="progress-bar">
+                        <div class="progress-bar-fill" style="width: ${player.titolarita}%; background: linear-gradient(90deg, #10b981, #059669);"></div>
                     </div>
-                </td>
-                <td><span class="badge badge-info">${ruoliMap[player.ruolo]}</span></td>
-                <td>
-                    <div style="display: flex; align-items: center; gap: 0.5rem;">
-                        <i class="fas fa-shield-alt" style="color: #3b82f6; font-size: 0.9rem;"></i>
-                        <span>${player.squadra}</span>
+                    <span style="font-size: 0.9rem; font-weight: 600; min-width: 40px;">${player.titolarita}%</span>
+                </div>
+            </td>
+            <td><span style="font-weight: 500;">${player.avversario}</span></td>
+            <td>
+                <div class="progress-bar-container">
+                    <div class="progress-bar">
+                        <div class="progress-bar-fill" style="width: ${(player.difficolta / 20) * 100}%; background: ${
+                            player.difficolta > 15 ? 'linear-gradient(90deg, #ef4444, #dc2626)' : 
+                            player.difficolta > 10 ? 'linear-gradient(90deg, #f59e0b, #d97706)' : 
+                            'linear-gradient(90deg, #10b981, #059669)'
+                        };"></div>
                     </div>
-                </td>
-                <td><span class="score-highlight">${(player.punteggio || 0).toFixed(2)}</span></td>
-                <td>
-                    <div class="progress-bar-container">
-                        <div class="progress-bar">
-                            <div class="progress-bar-fill" style="width: ${player.titolarita}%; background: linear-gradient(90deg, #10b981, #059669);"></div>
-                        </div>
-                        <span style="font-size: 0.9rem; font-weight: 600; min-width: 40px;">${player.titolarita}%</span>
-                    </div>
-                </td>
-                <td><span style="font-weight: 500;">${player.avversario}</span></td>
-                <td>
-                    <div class="progress-bar-container">
-                        <div class="progress-bar">
-                            <div class="progress-bar-fill" style="width: ${(player.difficolta / 20) * 100}%; background: ${
-                                player.difficolta > 15 ? 'linear-gradient(90deg, #ef4444, #dc2626)' : 
-                                player.difficolta > 10 ? 'linear-gradient(90deg, #f59e0b, #d97706)' : 
-                                'linear-gradient(90deg, #10b981, #059669)'
-                            };"></div>
-                        </div>
-                        <span style="font-size: 0.9rem; font-weight: 600; min-width: 40px;">${player.difficolta}/20</span>
-                    </div>
-                </td>
-                <td>
-                    ${player.infortunato ? 
-                        '<span class="badge badge-danger"><i class="fas fa-heartbeat"></i> Infortunato</span>' : 
-                    player.disponibile ? 
-                        '<span class="badge badge-success"><i class="fas fa-check-circle"></i> OK</span>' : 
-                        '<span class="badge badge-warning"><i class="fas fa-exclamation-circle"></i> N/D</span>'}
-                </td>
-                <td>
-                    <button class="btn btn-primary" style="padding: 0.6rem 1rem; font-size: 0.85rem; white-space: nowrap;" 
-                            onclick="event.stopPropagation(); showPlayerDetails('${player.nome}')">
-                        <i class="fas fa-chart-line"></i> Dettagli
-                    </button>
-                </td>
-            </tr>
-        `).join('');
-        
-        tbody.innerHTML = html;
-        updateSortButtons();
-    }
+                    <span style="font-size: 0.9rem; font-weight: 600; min-width: 40px;">${player.difficolta}/20</span>
+                </div>
+            </td>
+            <td>
+                ${player.infortunato ? 
+                    '<span class="badge badge-danger"><i class="fas fa-heartbeat"></i> Infortunato</span>' : 
+                player.disponibile ? 
+                    '<span class="badge badge-success"><i class="fas fa-check-circle"></i> OK</span>' : 
+                    '<span class="badge badge-warning"><i class="fas fa-exclamation-circle"></i> N/D</span>'}
+            </td>
+            <td>
+                <button class="btn btn-primary btn-details" data-player="${player.nome}" style="padding: 0.6rem 1rem; font-size: 0.85rem; white-space: nowrap;">
+                    <i class="fas fa-chart-line"></i> Dettagli
+                </button>
+            </td>
+        </tr>
+    `).join('');
+    
+    tbody.innerHTML = html;
+    
+    // ⭐ Aggiungi event listeners dopo il render
+    tbody.querySelectorAll('tr[data-player]').forEach(row => {
+        row.addEventListener('click', (e) => {
+            // Ignora se clicco sul pulsante
+            if (e.target.closest('.btn-details')) return;
+            showPlayerDetails(row.dataset.player);
+        });
+    });
+    
+    tbody.querySelectorAll('.btn-details').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            showPlayerDetails(btn.dataset.player);
+        });
+    });
+    
+    updateSortButtons();
+}
 
 
     // Filter Rosa
@@ -788,7 +800,7 @@
         const renderPlayer = (player) => {
             if (!player) return '<div style="opacity: 0.3;">Nessuno</div>';
             return `
-                <div class="campo-player" onclick="showPlayerDetails('${player.nome}')" 
+                <div class="campo-player" data-player="${player.nome}" 
                     style="cursor: pointer; background: white; padding: 1rem; border-radius: 8px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.2); transition: all 0.2s; min-width: 120px;" 
                     onmouseover="this.style.transform='scale(1.05)'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.3)'" 
                     onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='0 2px 8px rgba(0,0,0,0.2)'">
@@ -847,7 +859,7 @@
 
     function renderFormationPlayers(players) {
         return players.map(player => `
-            <div class="formation-player" onclick="showPlayerDetails('${player.nome}')">
+            <div class="formation-player" data-player="${player.nome}">
                 <div class="formation-player-name">${player.nome}</div>
                 <div class="formation-player-score">${player.punteggio.toFixed(2)}</div>
                 <div style="font-size: 0.8rem; color: var(--text-secondary);">${player.squadra}</div>
@@ -975,7 +987,7 @@
         const sorted = [...filtered].sort((a, b) => b.punteggio - a.punteggio);
         
         const html = sorted.map(player => `
-            <div class="player-card" onclick="showPlayerDetails('${player.nome}')">
+            <div class="player-card" data-player="${player.nome}">
                 <div class="player-card-header">
                     <div>
                         <div class="player-card-name">${player.nome}</div>
@@ -1033,142 +1045,221 @@
 
     // Player Details Modal
     function showPlayerDetails(nomeGiocatore) {
-        const player = rosa.find(p => p.nome === nomeGiocatore);
-        if (!player) return;
-        
-        const forza = classifica.find(s => s.nome === player.squadra)?.punti || 10;
-        const stats = player.stats || {};
-        
-        const modalHtml = `
-            <div style="display: grid; gap: 1.5rem;">
-                <!-- Info Principali -->
-                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem;">
-                    <div class="stat-box">
-                        <i class="fas fa-user-tag" style="color: var(--primary-color); font-size: 1.5rem;"></i>
-                        <p style="color: var(--text-secondary); margin: 0.5rem 0 0.25rem;">Ruolo</p>
-                        <p style="font-size: 1.2rem; font-weight: 700; margin: 0;">${ruoliMap[player.ruolo]}</p>
+    const existingModal = document.querySelector('.modal-overlay');
+    if (existingModal) {
+        existingModal.remove();
+    }
+    
+    const player = rosa.find(p => p.nome === nomeGiocatore);
+    
+    if (!player) {
+        showNotification('❌ Giocatore non trovato', 'error');
+        return;
+    }
+    
+    const ruoloNorm = normalizzaRuolo(player.ruolo);
+    const isPortiere = ruoloNorm === 'P';
+    
+    // ⭐ Estrai le statistiche dall'oggetto stats
+    const stats = player.stats || {};
+    
+    const modal = document.createElement('div');
+    modal.className = 'modal-overlay';
+    modal.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 10000;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+        overflow-y: auto;
+        padding: 2rem;
+    `;
+    
+    modal.innerHTML = `
+        <div class="modal-content" style="max-width: 700px; width: 100%; background: white; border-radius: 16px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); animation: slideIn 0.3s ease; margin: auto;">
+            <div class="modal-header" style="background: linear-gradient(135deg, var(--primary-color), #2563eb); color: white; padding: 2rem; border-radius: 16px 16px 0 0;">
+                <h2 style="margin: 0; display: flex; align-items: center; gap: 1rem;">
+                    <div style="width: 50px; height: 50px; background: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: var(--primary-color); font-weight: 700; font-size: 1.5rem;">
+                        ${ruoloNorm}
                     </div>
-                    <div class="stat-box">
-                        <i class="fas fa-shield-alt" style="color: var(--primary-color); font-size: 1.5rem;"></i>
-                        <p style="color: var(--text-secondary); margin: 0.5rem 0 0.25rem;">Squadra</p>
-                        <p style="font-size: 1.2rem; font-weight: 700; margin: 0;">${player.squadra}</p>
-                        <p style="color: var(--text-secondary); font-size: 0.85rem;">Forza: ${forza}/20</p>
+                    ${player.nome}
+                </h2>
+                <p style="margin: 0.5rem 0 0 0; opacity: 0.9;">${player.squadra} • ${getRuoloCompleto(ruoloNorm)}</p>
+            </div>
+            
+            <div class="modal-body" style="padding: 2rem;">
+                <!-- Metriche Principali -->
+                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.5rem; margin-bottom: 2rem;">
+                    <div style="background: #f0f9ff; padding: 1.5rem; border-radius: 12px; text-align: center;">
+                        <i class="fas fa-chart-line" style="font-size: 2rem; color: var(--primary-color); margin-bottom: 0.5rem;"></i>
+                        <p style="margin: 0; color: var(--text-secondary); font-size: 0.9rem;">Punteggio</p>
+                        <p style="margin: 0.5rem 0 0 0; font-size: 2rem; font-weight: 700; color: var(--primary-color);">${(player.punteggio || 0).toFixed(2)}</p>
                     </div>
-                    <div class="stat-box" style="background: linear-gradient(135deg, var(--primary-color), #7c3aed);">
-                        <i class="fas fa-star" style="color: white; font-size: 1.5rem;"></i>
-                        <p style="color: rgba(255,255,255,0.9); margin: 0.5rem 0 0.25rem;">Punteggio</p>
-                        <p style="font-size: 2rem; font-weight: 700; margin: 0; color: white;">${player.punteggio.toFixed(2)}</p>
+                    
+                    <div style="background: #f0fdf4; padding: 1.5rem; border-radius: 12px; text-align: center;">
+                        <i class="fas fa-percentage" style="font-size: 2rem; color: var(--success-color); margin-bottom: 0.5rem;"></i>
+                        <p style="margin: 0; color: var(--text-secondary); font-size: 0.9rem;">Titolarità</p>
+                        <p style="margin: 0.5rem 0 0 0; font-size: 2rem; font-weight: 700; color: var(--success-color);">${player.titolarita || 0}%</p>
                     </div>
-                    <div class="stat-box">
-                        <i class="fas fa-percentage" style="color: var(--success-color); font-size: 1.5rem;"></i>
-                        <p style="color: var(--text-secondary); margin: 0.5rem 0 0.25rem;">Titolarità</p>
-                        <div style="margin-top: 0.5rem;">
-                            <div style="width: 100%; height: 12px; background: #e5e7eb; border-radius: 6px; overflow: hidden;">
-                                <div style="width: ${player.titolarita}%; height: 100%; background: var(--success-color); transition: width 0.3s;"></div>
-                            </div>
-                            <p style="font-size: 1.2rem; font-weight: 700; margin: 0.5rem 0 0;">${player.titolarita}%</p>
-                        </div>
+                    
+                    <div style="background: #fef3c7; padding: 1.5rem; border-radius: 12px; text-align: center;">
+                        <i class="fas fa-shield-alt" style="font-size: 2rem; color: var(--warning-color); margin-bottom: 0.5rem;"></i>
+                        <p style="margin: 0; color: var(--text-secondary); font-size: 0.9rem;">Avversario</p>
+                        <p style="margin: 0.5rem 0 0 0; font-size: 1.5rem; font-weight: 700; color: var(--warning-color);">${player.avversario || 'N/D'}</p>
                     </div>
-                </div>
-                
-                <!-- Statistiche Dettagliate -->
-                <div style="padding: 1.5rem; background: linear-gradient(135deg, #f0f9ff, white); border-radius: 12px; border: 2px solid var(--primary-color);">
-                    <h3 style="margin-bottom: 1rem; color: var(--primary-color);">
-                        <i class="fas fa-chart-bar"></i> Statistiche Stagionali
-                    </h3>
-                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem;">
-                        <div class="mini-stat">
-                            <i class="fas fa-futbol"></i>
-                            <span class="mini-stat-label">Goals</span>
-                            <span class="mini-stat-value">${stats.goals || 0}</span>
-                        </div>
-                        <div class="mini-stat">
-                            <i class="fas fa-hands-helping"></i>
-                            <span class="mini-stat-label">Assist</span>
-                            <span class="mini-stat-value">${stats.assist || 0}</span>
-                        </div>
-                        <div class="mini-stat">
-                            <i class="fas fa-clock"></i>
-                            <span class="mini-stat-label">Minuti</span>
-                            <span class="mini-stat-value">${stats.minuti || 0}'</span>
-                        </div>
-                        ${player.ruolo === 0 ? `
-                            <div class="mini-stat">
-                                <i class="fas fa-shield"></i>
-                                <span class="mini-stat-label">Clean Sheet</span>
-                                <span class="mini-stat-value">${stats.cleanSheet || 0}</span>
-                            </div>
-                            <div class="mini-stat">
-                                <i class="fas fa-circle-notch"></i>
-                                <span class="mini-stat-label">Gol Subiti</span>
-                                <span class="mini-stat-value">${stats.golSubiti || 0}</span>
-                            </div>
-                        ` : ''}
-                        <div class="mini-stat">
-                            <i class="fas fa-chart-line"></i>
-                            <span class="mini-stat-label">xGoals</span>
-                            <span class="mini-stat-value">${(stats.xgoals || 0).toFixed(2)}</span>
-                        </div>
-                        <div class="mini-stat">
-                            <i class="fas fa-arrow-trend-up"></i>
-                            <span class="mini-stat-label">xAssist</span>
-                            <span class="mini-stat-value">${(stats.xassist || 0).toFixed(2)}</span>
-                        </div>
-                        <div class="mini-stat">
-                            <i class="fas fa-star-half-alt"></i>
-                            <span class="mini-stat-label">Media Voto</span>
-                            <span class="mini-stat-value">${(stats.mediaVoto || 0).toFixed(2)}</span>
-                        </div>
-                        <div class="mini-stat">
-                            <i class="fas fa-trophy"></i>
-                            <span class="mini-stat-label">Fantavoto</span>
-                            <span class="mini-stat-value">${(stats.mediaFantavoto || 0).toFixed(2)}</span>
-                        </div>
+                    
+                    <div style="background: #fee2e2; padding: 1.5rem; border-radius: 12px; text-align: center;">
+                        <i class="fas fa-exclamation-triangle" style="font-size: 2rem; color: var(--danger-color); margin-bottom: 0.5rem;"></i>
+                        <p style="margin: 0; color: var(--text-secondary); font-size: 0.9rem;">Difficoltà</p>
+                        <p style="margin: 0.5rem 0 0 0; font-size: 2rem; font-weight: 700; color: var(--danger-color);">${player.difficolta || 0}/20</p>
                     </div>
                 </div>
                 
-                <!-- Prossima Partita -->
-                <div style="padding: 1.5rem; background: var(--light); border-radius: 12px;">
-                    <h3 style="margin-bottom: 1rem;">
-                        <i class="fas fa-calendar-alt"></i> Prossima Partita
-                    </h3>
-                    <div style="display: grid; grid-template-columns: 1fr auto 1fr; gap: 1rem; align-items: center;">
-                        <div style="text-align: center;">
-                            <p style="font-size: 1.5rem; font-weight: 700; margin: 0;">${player.squadra}</p>
-                        </div>
-                        <div style="text-align: center;">
-                            <p style="font-size: 2rem; font-weight: 700; color: var(--primary-color); margin: 0;">VS</p>
-                        </div>
-                        <div style="text-align: center;">
-                            <p style="font-size: 1.5rem; font-weight: 700; margin: 0;">${player.avversario}</p>
-                            <p style="color: var(--text-secondary); margin: 0.5rem 0 0;">Difficoltà: ${player.difficolta}/20</p>
-                        </div>
-                    </div>
-                </div>
+                <!-- ⭐ STATISTICHE DETTAGLIATE (DINAMICHE PER RUOLO) -->
+<div style="background: linear-gradient(135deg, #f9fafb, #f3f4f6); padding: 1.5rem; border-radius: 12px; margin-bottom: 2rem;">
+    <h3 style="margin: 0 0 1.5rem 0; color: var(--primary-color); display: flex; align-items: center; gap: 0.5rem;">
+        <i class="fas fa-chart-bar"></i> Statistiche Dettagliate
+    </h3>
+    
+    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem;">
+        ${isPortiere ? `
+            <!-- STATISTICHE PER PORTIERI -->
+            <div style="background: white; padding: 1rem; border-radius: 8px; text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                <i class="fas fa-hand-paper" style="color: #10b981; font-size: 1.5rem; margin-bottom: 0.5rem;"></i>
+                <p style="margin: 0; font-size: 0.85rem; color: var(--text-secondary);">Clean Sheet</p>
+                <p style="margin: 0.25rem 0 0 0; font-size: 1.5rem; font-weight: 700; color: #10b981;">${stats.cleanSheet || 0}</p>
+            </div>
+            
+            <div style="background: white; padding: 1rem; border-radius: 8px; text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                <i class="fas fa-bullseye" style="color: #ef4444; font-size: 1.5rem; margin-bottom: 0.5rem;"></i>
+                <p style="margin: 0; font-size: 0.85rem; color: var(--text-secondary);">Gol Subiti</p>
+                <p style="margin: 0.25rem 0 0 0; font-size: 1.5rem; font-weight: 700; color: #ef4444;">${stats.golSubiti || 0}</p>
+            </div>
+            
+            <div style="background: white; padding: 1rem; border-radius: 8px; text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                <i class="fas fa-save" style="color: #3b82f6; font-size: 1.5rem; margin-bottom: 0.5rem;"></i>
+                <p style="margin: 0; font-size: 0.85rem; color: var(--text-secondary);">Rigori Parati</p>
+                <p style="margin: 0.25rem 0 0 0; font-size: 1.5rem; font-weight: 700; color: #3b82f6;">${stats.rigoriParati || 0}</p>
+            </div>
+        ` : `
+            <!-- STATISTICHE PER ALTRI RUOLI -->
+            <div style="background: white; padding: 1rem; border-radius: 8px; text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                <i class="fas fa-futbol" style="color: #10b981; font-size: 1.5rem; margin-bottom: 0.5rem;"></i>
+                <p style="margin: 0; font-size: 0.85rem; color: var(--text-secondary);">Gol</p>
+                <p style="margin: 0.25rem 0 0 0; font-size: 1.5rem; font-weight: 700; color: #10b981;">${stats.goals || 0}</p>
+            </div>
+            
+            <div style="background: white; padding: 1rem; border-radius: 8px; text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                <i class="fas fa-hands-helping" style="color: #3b82f6; font-size: 1.5rem; margin-bottom: 0.5rem;"></i>
+                <p style="margin: 0; font-size: 0.85rem; color: var(--text-secondary);">Assist</p>
+                <p style="margin: 0.25rem 0 0 0; font-size: 1.5rem; font-weight: 700; color: #3b82f6;">${stats.assist || 0}</p>
+            </div>
+            
+            <div style="background: white; padding: 1rem; border-radius: 8px; text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                <i class="fas fa-bolt" style="color: #f59e0b; font-size: 1.5rem; margin-bottom: 0.5rem;"></i>
+                <p style="margin: 0; font-size: 0.85rem; color: var(--text-secondary);">xGoals</p>
+                <p style="margin: 0.25rem 0 0 0; font-size: 1.5rem; font-weight: 700; color: #f59e0b;">${(stats.xgoals || 0).toFixed(1)}</p>
+            </div>
+        `}
+        
+        <!-- STATISTICHE COMUNI A TUTTI -->
+        <div style="background: white; padding: 1rem; border-radius: 8px; text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+            <i class="fas fa-hand-holding-heart" style="color: #8b5cf6; font-size: 1.5rem; margin-bottom: 0.5rem;"></i>
+            <p style="margin: 0; font-size: 0.85rem; color: var(--text-secondary);">xAssist</p>
+            <p style="margin: 0.25rem 0 0 0; font-size: 1.5rem; font-weight: 700; color: #8b5cf6;">${(stats.xassist || 0).toFixed(1)}</p>
+        </div>
+        
+        <div style="background: white; padding: 1rem; border-radius: 8px; text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+            <i class="fas fa-star" style="color: #fbbf24; font-size: 1.5rem; margin-bottom: 0.5rem;"></i>
+            <p style="margin: 0; font-size: 0.85rem; color: var(--text-secondary);">Media Voto</p>
+            <p style="margin: 0.25rem 0 0 0; font-size: 1.5rem; font-weight: 700; color: #fbbf24;">${(stats.mediaVoto || 0).toFixed(2)}</p>
+        </div>
+        
+        <div style="background: white; padding: 1rem; border-radius: 8px; text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+            <i class="fas fa-trophy" style="color: #10b981; font-size: 1.5rem; margin-bottom: 0.5rem;"></i>
+            <p style="margin: 0; font-size: 0.85rem; color: var(--text-secondary);">Fantavoto</p>
+            <p style="margin: 0.25rem 0 0 0; font-size: 1.5rem; font-weight: 700; color: #10b981;">${(stats.mediaFantavoto || 0).toFixed(2)}</p>
+        </div>
+        
+        <div style="background: white; padding: 1rem; border-radius: 8px; text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+            <i class="fas fa-clock" style="color: #6366f1; font-size: 1.5rem; margin-bottom: 0.5rem;"></i>
+            <p style="margin: 0; font-size: 0.85rem; color: var(--text-secondary);">Minuti</p>
+            <p style="margin: 0.25rem 0 0 0; font-size: 1.5rem; font-weight: 700; color: #6366f1;">${stats.minuti || 0}'</p>
+        </div>
+    </div>
+</div>
+
+                
                 
                 <!-- Stato -->
-                <div style="padding: 1.5rem; background: var(--light); border-radius: 12px;">
-                    <h3 style="margin-bottom: 1rem;">
-                        <i class="fas fa-heartbeat"></i> Stato Attuale
-                    </h3>
-                    <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
-                        ${player.infortunato ? '<span class="badge badge-danger" style="font-size: 1rem; padding: 0.75rem 1.5rem;"><i class="fas fa-ambulance"></i> Infortunato</span>' : ''}
-                        ${player.disponibile ? '<span class="badge badge-success" style="font-size: 1rem; padding: 0.75rem 1.5rem;"><i class="fas fa-check-circle"></i> Disponibile</span>' : 
-                        '<span class="badge badge-warning" style="font-size: 1rem; padding: 0.75rem 1.5rem;"><i class="fas fa-exclamation-triangle"></i> Non disponibile</span>'}
-                    </div>
+                <div style="padding: 1.5rem; background: ${player.infortunato ? '#fee2e2' : player.disponibile ? '#d1fae5' : '#fef3c7'}; border-radius: 12px; text-align: center;">
+                    ${player.infortunato ? 
+                        '<i class="fas fa-heartbeat" style="font-size: 2rem; color: var(--danger-color);"></i><p style="margin: 0.5rem 0 0 0; font-weight: 600; color: var(--danger-color);">Infortunato</p>' : 
+                    player.disponibile ? 
+                        '<i class="fas fa-check-circle" style="font-size: 2rem; color: var(--success-color);"></i><p style="margin: 0.5rem 0 0 0; font-weight: 600; color: var(--success-color);">Disponibile</p>' : 
+                        '<i class="fas fa-exclamation-circle" style="font-size: 2rem; color: var(--warning-color);"></i><p style="margin: 0.5rem 0 0 0; font-weight: 600; color: var(--warning-color);">Non Disponibile</p>'}
                 </div>
             </div>
-        `;
-        
-        document.getElementById('modalPlayerName').textContent = player.nome;
-        document.getElementById('modalPlayerBody').innerHTML = modalHtml;
-        document.getElementById('playerModal').classList.add('active');
+            
+            <div class="modal-footer" style="padding: 1.5rem; border-top: 1px solid #e5e7eb; display: flex; justify-content: center;">
+                <button class="btn btn-primary btn-close-modal" style="padding: 1rem 2rem;">
+                    <i class="fas fa-times"></i> Chiudi
+                </button>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    
+    setTimeout(() => {
+        modal.style.opacity = '1';
+    }, 10);
+    
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            closeModal();
+        }
+    });
+    
+    const closeBtn = modal.querySelector('.btn-close-modal');
+    if (closeBtn) {
+        closeBtn.addEventListener('click', closeModal);
     }
+    
+    const escHandler = (e) => {
+        if (e.key === 'Escape') {
+            closeModal();
+            document.removeEventListener('keydown', escHandler);
+        }
+    };
+    document.addEventListener('keydown', escHandler);
+}
+
+
+
+
 
 
     function closeModal() {
-        document.getElementById('playerModal').classList.remove('active');
+    const modal = document.querySelector('.modal-overlay');
+    if (modal) {
+        // ⭐ Aggiungi animazione fade-out
+        modal.style.transition = 'opacity 0.3s ease';
+        modal.style.opacity = '0';
+        
+        setTimeout(() => {
+            modal.remove(); // Rimuove completamente dal DOM
+        }, 300);
     }
+}
+
 
     // Calcola Punteggi
     function calcolaPunteggi() {
@@ -1844,10 +1935,10 @@ function renderClassificaRows() {
         row.innerHTML = `
             <td>
                 <div style="display: flex; gap: 0.25rem;">
-                    <button class="btn-icon" onclick="moveTeamUp(${index})" ${index === 0 ? 'disabled' : ''}>
+                    <button class="btn-icon" data-action="move-up" data-index="${index}" ${index === 0 ? 'disabled' : ''}>
                         <i class="fas fa-chevron-up"></i>
                     </button>
-                    <button class="btn-icon" onclick="moveTeamDown(${index})" ${index === classifica.length - 1 ? 'disabled' : ''}>
+                    <button class="btn-icon" data-action="move-down" data-index="${index}" ${index === classifica.length - 1 ? 'disabled' : ''}>
                         <i class="fas fa-chevron-down"></i>
                     </button>
                 </div>
@@ -1862,7 +1953,7 @@ function renderClassificaRows() {
                        class="team-points-input" 
                        value="${team.punti}" 
                        min="0" 
-                       onchange="updateTeamPoints(${index}, this.value)"
+                       data-team-index="${index}" data-action="update-points"
                        style="width: 80px; padding: 0.5rem; border: 2px solid #e2e8f0; border-radius: 6px; text-align: center;">
             </td>
         `;
@@ -2080,114 +2171,153 @@ function renderClassificaRows() {
     let currentRoleFilter = 'all';
 
     function renderRosa() {
-        const tbody = document.getElementById('rosaTableBody');
-        
-        if (!tbody) {
-            console.error('Elemento rosaTableBody non trovato!');
-            return;
-        }
-        
-        if (rosa.length === 0) {
-            tbody.innerHTML = `
-                <tr>
-                    <td colspan="8" style="text-align: center; padding: 3rem;">
-                        <div style="display: flex; flex-direction: column; align-items: center; gap: 1rem;">
-                            <i class="fas fa-users" style="font-size: 3rem; color: var(--text-secondary);"></i>
-                            <p style="color: var(--text-secondary); margin: 0;">Nessun giocatore nella rosa.</p>
-                        </div>
-                    </td>
-                </tr>
-            `;
-            return;
-        }
-        
-        // Applica filtro ruolo
-        filteredRosa = currentRoleFilter === 'all' ? 
-            [...rosa] : 
-            rosa.filter(p => p.ruolo === parseInt(currentRoleFilter));
-        
-        // Applica ordinamento
-        filteredRosa.sort((a, b) => {
-            let valueA, valueB;
-            
-            switch(currentSortBy) {
-                case 'punteggio':
-                    valueA = a.punteggio || 0;
-                    valueB = b.punteggio || 0;
-                    break;
-                case 'ruolo':
-                    if (a.ruolo === b.ruolo) {
-                        return (b.punteggio || 0) - (a.punteggio || 0);
-                    }
-                    valueA = a.ruolo;
-                    valueB = b.ruolo;
-                    break;
-                case 'nome':
-                    valueA = (a.nome || '').toLowerCase();
-                    valueB = (b.nome || '').toLowerCase();
-                    break;
-                default:
-                    valueA = a.punteggio || 0;
-                    valueB = b.punteggio || 0;
-            }
-            
-            if (currentSortDirection === 'asc') {
-                return valueA > valueB ? 1 : valueA < valueB ? -1 : 0;
-            } else {
-                return valueA < valueB ? 1 : valueA > valueB ? -1 : 0;
-            }
-        });
-        
-        // Calcola paginazione
-        const totalPages = Math.ceil(filteredRosa.length / itemsPerPage);
-        const startIndex = (currentPage - 1) * itemsPerPage;
-        const endIndex = startIndex + itemsPerPage;
-        const paginatedRosa = filteredRosa.slice(startIndex, endIndex);
-        
-        // Renderizza righe
-        const html = paginatedRosa.map((player, index) => {
-            const actualIndex = startIndex + index + 1;
-            return `
-                <tr onclick="showPlayerDetails('${player.nome}')">
-                    <td style="color: var(--text-secondary); font-weight: 600;">#${actualIndex}</td>
-                    <td><strong style="font-size: 1.05rem;">${player.nome}</strong></td>
-                    <td><span class="badge badge-info">${ruoliMap[player.ruolo]}</span></td>
-                    <td>
-                        <div style="display: flex; align-items: center; gap: 0.5rem;">
-                            <i class="fas fa-shield-alt" style="color: #3b82f6; font-size: 0.9rem;"></i>
-                            <span>${player.squadra}</span>
-                        </div>
-                    </td>
-                    <td><span class="score-highlight">${(player.punteggio || 0).toFixed(2)}</span></td>
-                    <td>
-                        <div class="progress-bar-container">
-                            <div class="progress-bar">
-                                <div class="progress-bar-fill" style="width: ${player.titolarita}%; background: linear-gradient(90deg, #10b981, #059669);"></div>
-                            </div>
-                            <span style="font-size: 0.9rem; font-weight: 600;">${player.titolarita}%</span>
-                        </div>
-                    </td>
-                    <td>
-                        ${player.infortunato ? 
-                            '<span class="badge badge-danger"><i class="fas fa-heartbeat"></i></span>' : 
-                        player.disponibile ? 
-                            '<span class="badge badge-success"><i class="fas fa-check"></i></span>' : 
-                            '<span class="badge badge-warning"><i class="fas fa-times"></i></span>'}
-                    </td>
-                    <td>
-                        <button class="btn btn-primary btn-sm" 
-                                onclick="event.stopPropagation(); showPlayerDetails('${player.nome}')">
-                            <i class="fas fa-eye"></i>
-                        </button>
-                    </td>
-                </tr>
-            `;
-        }).join('');
-        
-        tbody.innerHTML = html;
-        renderPagination(totalPages);
-        updateSortButtons();
+    const tbody = document.getElementById('rosaTableBody');
+    
+    if (!tbody) {
+        console.error('Elemento rosaTableBody non trovato!');
+        return;
     }
+    
+    if (rosa.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="9" style="text-align: center; padding: 3rem;">
+                    <div style="display: flex; flex-direction: column; align-items: center; gap: 1rem;">
+                        <i class="fas fa-users" style="font-size: 3rem; color: var(--text-secondary);"></i>
+                        <p style="color: var(--text-secondary); margin: 0;">Nessun giocatore nella rosa.</p>
+                        <button class="btn btn-primary" data-action="import">
+                            <i class="fas fa-file-import"></i> Importa Dati
+                        </button>
+                    </div>
+                </td>
+            </tr>
+        `;
+        
+        const importBtn = tbody.querySelector('[data-action="import"]');
+        if (importBtn) {
+            importBtn.addEventListener('click', () => showSection('import'));
+        }
+        return;
+    }
+    
+    // APPLICA ORDINAMENTO
+    const sortedRosa = [...rosa].sort((a, b) => {
+        let valueA, valueB;
+        
+        switch(currentSortBy) {
+            case 'punteggio':
+                valueA = a.punteggio || 0;
+                valueB = b.punteggio || 0;
+                break;
+            case 'ruolo':
+                if (a.ruolo === b.ruolo) {
+                    return (b.punteggio || 0) - (a.punteggio || 0);
+                }
+                valueA = a.ruolo;
+                valueB = b.ruolo;
+                break;
+            case 'nome':
+                valueA = (a.nome || '').toLowerCase();
+                valueB = (b.nome || '').toLowerCase();
+                break;
+            case 'squadra':
+                valueA = (a.squadra || '').toLowerCase();
+                valueB = (b.squadra || '').toLowerCase();
+                break;
+            case 'titolarita':
+                valueA = a.titolarita || 0;
+                valueB = b.titolarita || 0;
+                break;
+            default:
+                valueA = a.punteggio || 0;
+                valueB = b.punteggio || 0;
+        }
+        
+        if (currentSortDirection === 'asc') {
+            return valueA > valueB ? 1 : valueA < valueB ? -1 : 0;
+        } else {
+            return valueA < valueB ? 1 : valueA > valueB ? -1 : 0;
+        }
+    });
+    
+    const html = sortedRosa.map((player, index) => {
+        // ⭐ NORMALIZZA IL RUOLO PRIMA DI USARLO
+        const ruoloNormalizzato = normalizzaRuolo(player.ruolo);
+        const ruoloDescrizione = getRuoloCompleto(ruoloNormalizzato);
+        
+        return `
+            <tr data-player="${player.nome}" style="cursor: pointer;">
+                <td>
+                    <div style="display: flex; align-items: center; gap: 0.75rem;">
+                        <span style="font-size: 0.9rem; width: 25px; color: var(--text-secondary); font-weight: 600;">#${index + 1}</span>
+                        <strong>${player.nome}</strong>
+                    </div>
+                </td>
+                <td><span class="badge badge-info">${ruoloDescrizione}</span></td>
+                <td>
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        <i class="fas fa-shield-alt" style="color: #3b82f6; font-size: 0.9rem;"></i>
+                        <span>${player.squadra}</span>
+                    </div>
+                </td>
+                <td><span class="score-highlight">${(player.punteggio || 0).toFixed(2)}</span></td>
+                <td>
+                    <div class="progress-bar-container">
+                        <div class="progress-bar">
+                            <div class="progress-bar-fill" style="width: ${player.titolarita || 0}%; background: linear-gradient(90deg, #10b981, #059669);"></div>
+                        </div>
+                        <span style="font-size: 0.9rem; font-weight: 600; min-width: 40px;">${player.titolarita || 0}%</span>
+                    </div>
+                </td>
+                <td><span style="font-weight: 500;">${player.avversario || 'N/D'}</span></td>
+                <td>
+                    <div class="progress-bar-container">
+                        <div class="progress-bar">
+                            <div class="progress-bar-fill" style="width: ${((player.difficolta || 0) / 20) * 100}%; background: ${
+                                (player.difficolta || 0) > 15 ? 'linear-gradient(90deg, #ef4444, #dc2626)' : 
+                                (player.difficolta || 0) > 10 ? 'linear-gradient(90deg, #f59e0b, #d97706)' : 
+                                'linear-gradient(90deg, #10b981, #059669)'
+                            };"></div>
+                        </div>
+                        <span style="font-size: 0.9rem; font-weight: 600; min-width: 40px;">${player.difficolta || 0}/20</span>
+                    </div>
+                </td>
+                <td>
+                    ${player.infortunato ? 
+                        '<span class="badge badge-danger"><i class="fas fa-heartbeat"></i> Infortunato</span>' : 
+                    player.disponibile ? 
+                        '<span class="badge badge-success"><i class="fas fa-check-circle"></i> OK</span>' : 
+                        '<span class="badge badge-warning"><i class="fas fa-exclamation-circle"></i> N/D</span>'}
+                </td>
+                <td>
+                    <button class="btn btn-primary btn-details" data-player="${player.nome}" style="padding: 0.6rem 1rem; font-size: 0.85rem; white-space: nowrap;">
+                        <i class="fas fa-chart-line"></i> Dettagli
+                    </button>
+                </td>
+            </tr>
+        `;
+    }).join('');
+    
+    tbody.innerHTML = html;
+    
+    // Aggiungi event listeners dopo il render
+    tbody.querySelectorAll('tr[data-player]').forEach(row => {
+        row.addEventListener('click', (e) => {
+            if (e.target.closest('.btn-details')) return;
+            showPlayerDetails(row.dataset.player);
+        });
+    });
+    
+    tbody.querySelectorAll('.btn-details').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            showPlayerDetails(btn.dataset.player);
+        });
+    });
+    
+    updateSortButtons();
+}
+
 
     function renderPagination(totalPages) {
         const info = document.getElementById('paginationInfo');
@@ -2204,14 +2334,14 @@ function renderClassificaRows() {
         let html = '';
         
         // Pulsante precedente
-        html += `<button class="pagination-btn" onclick="changePage(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''}>
+        html += `<button class="pagination-btn" data-action="page" data-page="${currentPage - 1}" ${currentPage === 1 ? 'disabled' : ''}>
             <i class="fas fa-chevron-left"></i>
         </button>`;
         
         // Pulsanti numerici
         for (let i = 1; i <= totalPages; i++) {
             if (totalPages <= 5 || i === 1 || i === totalPages || Math.abs(i - currentPage) <= 1) {
-                html += `<button class="pagination-btn ${i === currentPage ? 'active' : ''}" onclick="changePage(${i})">
+                html += `<button class="pagination-btn ${i === currentPage ? 'active' : ''}" data-action="page" data-page="${i}">
                     ${i}
                 </button>`;
             } else if (i === currentPage - 2 || i === currentPage + 2) {
@@ -2220,7 +2350,7 @@ function renderClassificaRows() {
         }
         
         // Pulsante successivo
-        html += `<button class="pagination-btn" onclick="changePage(${currentPage + 1})" ${currentPage === totalPages ? 'disabled' : ''}>
+        html += `<button class="pagination-btn" data-action="page" data-page="${currentPage + 1}" ${currentPage === totalPages ? 'disabled' : ''}>
             <i class="fas fa-chevron-right"></i>
         </button>`;
         
@@ -2321,7 +2451,7 @@ function renderClassificaRows() {
         }
         
         const html = paginatedRosa.map((player, index) => `
-            <tr onclick="showPlayerDetails('${player.nome}')">
+            <tr data-player="${player.nome}">
                 <td style="color: var(--text-secondary); font-weight: 600;">#${index + 1}</td>
                 <td><strong style="font-size: 1.05rem;">${player.nome}</strong></td>
                 <td><span class="badge badge-info">${ruoliMap[player.ruolo]}</span></td>
@@ -2349,7 +2479,7 @@ function renderClassificaRows() {
                 </td>
                 <td>
                     <button class="btn btn-primary btn-sm" 
-                            onclick="event.stopPropagation(); showPlayerDetails('${player.nome}')">
+                            data-player="${player.nome}" data-stop-propagation="true">
                         <i class="fas fa-eye"></i>
                     </button>
                 </td>
@@ -2461,34 +2591,7 @@ function renderClassificaRows() {
     }
 
     // Stile per radio button stato
-    document.addEventListener('DOMContentLoaded', function() {
-        const calcPunteggiBtn = document.getElementById('calcPunteggi');
-        if (calcPunteggiBtn) {
-            calcPunteggiBtn.addEventListener('click', function() {
-                if (confirm('⚠️ Ricalcolare i punteggi di tutti i giocatori?\n\nQuesta operazione sovrascriverà i punteggi attuali.')) {
-                    calcolaPunteggi();
-                }
-            });
-        }
-        const style = document.createElement('style');
-        style.textContent = `
-            .stato-option:has(input:checked) {
-                background: linear-gradient(135deg, var(--primary-color), #2563eb);
-                border-color: var(--primary-color) !important;
-                color: white;
-            }
-            
-            .stato-option:has(input:checked) i {
-                color: white !important;
-            }
-            
-            .stato-option:hover {
-                transform: translateY(-2px);
-                box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
-            }
-        `;
-        document.head.appendChild(style);
-    });
+    
 
     // Carica giocatore per modifica
     function loadPlayerForEdit() {
@@ -2651,14 +2754,14 @@ function renderClassificaRows() {
                 <td style="padding: 1rem; text-align: center;">
                     <div style="display: flex; gap: 0.5rem; justify-content: center;">
                         <button class="btn-arrow" 
-                                onclick="moveTeam(${index}, 'up')" 
+                                    data-action="move-up" data-index="${index}" 
                                 ${isFirst ? 'disabled' : ''}
                                 style="width: 40px; height: 40px; border: none; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; ${isFirst ? 'background: #e5e7eb; color: #9ca3af; cursor: not-allowed;' : 'background: var(--success-color); color: white;'}"
                                 title="Sposta su">
                             <i class="fas fa-arrow-up" style="font-size: 1.2rem;"></i>
                         </button>
                         <button class="btn-arrow" 
-                                onclick="moveTeam(${index}, 'down')" 
+                                data-action="move-down" data-index="${index}" 
                                 ${isLast ? 'disabled' : ''}
                                 style="width: 40px; height: 40px; border: none; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; ${isLast ? 'background: #e5e7eb; color: #9ca3af; cursor: not-allowed;' : 'background: var(--danger-color); color: white;'}"
                                 title="Sposta giù">
@@ -2743,10 +2846,7 @@ function renderClassificaRows() {
     }
 
     // Chiama al caricamento
-    document.addEventListener('DOMContentLoaded', function() {
-        // ... altre inizializzazioni ...
-        initGestioneSection();
-    });
+    
     // ============================================
     // TOP GIOCATORI PER RUOLO
     // ============================================
@@ -2811,7 +2911,7 @@ function renderClassificaRows() {
                         <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.5rem;">
                             ${giocatori.map((player, index) => `
                                 <div class="player-card-role" style="position: relative; padding: 1.5rem; background: linear-gradient(135deg, #f8fafc, white); border-radius: 12px; border: 2px solid #e5e7eb; transition: all 0.3s; cursor: pointer;" 
-                                    onclick="showPlayerDetails('${player.nome}')" 
+                                    data-player="${player.nome}" 
                                     onmouseover="this.style.borderColor='${color}'; this.style.transform='translateY(-4px)'; this.style.boxShadow='0 6px 16px rgba(0,0,0,0.15)';" 
                                     onmouseout="this.style.borderColor='#e5e7eb'; this.style.transform='translateY(0)'; this.style.boxShadow='none';">
                                     
@@ -2874,39 +2974,7 @@ function renderClassificaRows() {
     // MOBILE SIDEBAR TOGGLE
     // ============================================
 
-    document.addEventListener('DOMContentLoaded', function() {
-        const menuToggle = document.getElementById('menuToggle');
-        const sidebar = document.getElementById('sidebar');
-        
-        // Crea overlay
-        const overlay = document.createElement('div');
-        overlay.className = 'sidebar-overlay';
-        document.body.appendChild(overlay);
-        
-        // Toggle sidebar
-        if (menuToggle) {
-            menuToggle.addEventListener('click', function() {
-                sidebar.classList.toggle('active');
-                overlay.classList.toggle('active');
-            });
-        }
-        
-        // Chiudi con overlay
-        overlay.addEventListener('click', function() {
-            sidebar.classList.remove('active');
-            overlay.classList.remove('active');
-        });
-        
-        // Chiudi quando clicchi un link della sidebar
-        document.querySelectorAll('.nav-item').forEach(item => {
-            item.addEventListener('click', function() {
-                if (window.innerWidth <= 768) {
-                    sidebar.classList.remove('active');
-                    overlay.classList.remove('active');
-                }
-            });
-        });
-    });
+    
     // ============================================
     // WIZARD SETUP PRIMO ACCESSO
     // ============================================
@@ -3019,7 +3087,7 @@ function renderClassificaRows() {
                             <p style="margin-bottom: 1rem;">Importa i tuoi giocatori per gestire la tua squadra.</p>
                         </div>
                         
-                        <button class="btn btn-primary" onclick="showWizardStep(2)" style="width: 100%; padding: 1.25rem; font-size: 1.1rem;">
+                        <button class="btn btn-primary" data-action="wizard-step" data-step="2" style="width: 100%; padding: 1.25rem; font-size: 1.1rem;">
                             <i class="fas fa-arrow-right"></i> Inizia Setup
                         </button>
                     </div>
@@ -3031,20 +3099,20 @@ function renderClassificaRows() {
                         </h2>
                         
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin: 2rem 0;">
-                            <div onclick="selectImportMethod('csv')" class="method-card" style="cursor: pointer; padding: 2rem; border: 3px solid #e5e7eb; border-radius: 12px; text-align: center; transition: all 0.3s;">
+                            <div data-action="import-method" data-method="csv" class="method-card" style="cursor: pointer; padding: 2rem; border: 3px solid #e5e7eb; border-radius: 12px; text-align: center; transition: all 0.3s;">
                                 <i class="fas fa-file-csv" style="font-size: 3rem; color: var(--success-color); margin-bottom: 1rem;"></i>
                                 <h3 style="margin-bottom: 0.5rem;">Importa CSV</h3>
                                 <p style="color: var(--text-secondary); font-size: 0.9rem;">Carica file con tutti i dati</p>
                             </div>
                             
-                            <div onclick="selectImportMethod('manual')" class="method-card" style="cursor: pointer; padding: 2rem; border: 3px solid #e5e7eb; border-radius: 12px; text-align: center; transition: all 0.3s;">
+                            <div data-action="import-method" data-method="manual" class="method-card" style="cursor: pointer; padding: 2rem; border: 3px solid #e5e7eb; border-radius: 12px; text-align: center; transition: all 0.3s;">
                                 <i class="fas fa-plus-circle" style="font-size: 3rem; color: var(--primary-color); margin-bottom: 1rem;"></i>
                                 <h3 style="margin-bottom: 0.5rem;">Aggiungi Manualmente</h3>
                                 <p style="color: var(--text-secondary); font-size: 0.9rem;">Inserisci giocatori uno per uno</p>
                             </div>
                         </div>
                         
-                        <button class="btn" onclick="showWizardStep(1)" style="width: 100%; margin-top: 1rem;">
+                        <button class="btn" data-action="wizard-step" data-step="1" style="width: 100%; margin-top: 1rem;">
                             <i class="fas fa-arrow-left"></i> Indietro
                         </button>
                     </div>
@@ -3071,8 +3139,8 @@ function renderClassificaRows() {
                         </div>
                         
                         <div style="display: flex; gap: 1rem;">
-                            <button class="btn" onclick="showWizardStep(2)" style="flex: 1;">Indietro</button>
-                            <button class="btn btn-success" id="wizardFinishCSV" disabled onclick="finishWizard()" style="flex: 2;">Completa</button>
+                            <button class="btn" data-action="wizard-step" data-step="2" style="flex: 1;">Indietro</button>
+                            <button class="btn btn-success" id="wizardFinishCSV" disabled data-action="finish-wizard" style="flex: 2;">Completa</button>
                         </div>
                     </div>
                     
@@ -3180,14 +3248,14 @@ function renderClassificaRows() {
     </div>
 
                             
-                            <button type="button" onclick="addPlayerManual()" class="btn btn-primary" style="width: 100%; margin-top: 1.5rem; padding: 1rem;">
+                            <button type="button" data-action="add-player-manual" class="btn btn-primary" style="width: 100%; margin-top: 1.5rem; padding: 1rem;">
                                 <i class="fas fa-plus"></i> Aggiungi Giocatore
                             </button>
                         </form>
                         
                         <div style="display: flex; gap: 1rem;">
-                            <button class="btn" onclick="showWizardStep(2)" style="flex: 1;">Indietro</button>
-                            <button class="btn btn-success" id="wizardFinishManual" onclick="finishWizardManual()" style="flex: 2;" disabled>
+                            <button class="btn" data-action="wizard-step" data-step="2" style="flex: 1;">Indietro</button>
+                            <button class="btn btn-success" id="wizardFinishManual" data-action="finish-wizard-manual" style="flex: 2;" disabled>
                                 <i class="fas fa-check"></i> Completa e Scarica
                             </button>
                         </div>
@@ -3283,7 +3351,7 @@ function renderClassificaRows() {
         container.innerHTML = tempRosa.map((p, i) => `
             <div style="display: flex; justify-content: space-between; padding: 0.75rem; background: white; border-radius: 8px; margin-bottom: 0.5rem; border: 1px solid #e5e7eb;">
                 <div><strong>${p.nome}</strong> <span style="color: var(--text-secondary);">(${ruoliMap[p.ruolo]}) - ${p.squadra}</span></div>
-                <button onclick="removePlayer(${i})" class="btn btn-sm" style="background: var(--danger-color); color: white; padding: 0.5rem;"><i class="fas fa-trash"></i></button>
+                <button data-action="remove-player" data-index="${i}" class="btn btn-sm" style="background: var(--danger-color); color: white; padding: 0.5rem;"><i class="fas fa-trash"></i></button>
             </div>
         `).join('');
     }
@@ -3429,43 +3497,11 @@ function renderClassificaRows() {
 
 
     // Chiudi menu quando clicchi su una voce
-    document.addEventListener('DOMContentLoaded', function() {
-        document.querySelectorAll('.nav-item').forEach(item => {
-            item.addEventListener('click', function() {
-                if (window.innerWidth <= 768) {
-                    const sidebar = document.getElementById('sidebar');
-                    if (sidebar?.classList.contains('active')) {
-                        toggleMobileMenu();
-                    }
-                }
-            });
-        });
-    });
+    
 
 
     // Chiudi menu quando si clicca su una voce
-    document.addEventListener('DOMContentLoaded', function() {
-        const navItems = document.querySelectorAll('.nav-item');
-        navItems.forEach(item => {
-            item.addEventListener('click', function() {
-                if (window.innerWidth <= 768) {
-                    const sidebar = document.getElementById('sidebar');
-                    const overlay = document.getElementById('sidebarOverlay');
-                    const btn = document.getElementById('mobileMenuBtn');
-                    
-                    if (sidebar && sidebar.classList.contains('active')) {
-                        sidebar.classList.remove('active');
-                        overlay.classList.remove('active');
-                        
-                        const icon = btn.querySelector('i');
-                        if (icon) icon.className = 'fas fa-bars';
-                        
-                        document.body.style.overflow = 'auto';
-                    }
-                }
-            });
-        });
-    });
+    
 
     // Gestisci resize finestra
     window.addEventListener('resize', function() {
@@ -3541,14 +3577,14 @@ function renderClassificaEditor() {
                 <td style="padding: 1rem; text-align: center;">
                     <div style="display: flex; gap: 0.5rem; justify-content: center;">
                         <button class="btn-arrow" 
-                                onclick="moveTeam(${index}, 'up')" 
+                                data-action="move-up" data-index="${index}" 
                                 ${isFirst ? 'disabled' : ''}
                                 style="width: 40px; height: 40px; border: none; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; ${isFirst ? 'background: #e5e7eb; color: #9ca3af; cursor: not-allowed;' : 'background: var(--success-color); color: white;'}"
                                 title="Sposta su">
                             <i class="fas fa-arrow-up" style="font-size: 1.2rem;"></i>
                         </button>
                         <button class="btn-arrow" 
-                                onclick="moveTeam(${index}, 'down')" 
+                                data-action="move-down" data-index="${index}" 
                                 ${isLast ? 'disabled' : ''}
                                 style="width: 40px; height: 40px; border: none; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; ${isLast ? 'background: #e5e7eb; color: #9ca3af; cursor: not-allowed;' : 'background: var(--danger-color); color: white;'}"
                                 title="Sposta giù">
@@ -3625,5 +3661,613 @@ window.addEventListener('resize', function() {
         if (sidebar) sidebar.classList.remove('active');
         if (overlay) overlay.classList.remove('active');
         document.body.style.overflow = 'auto';
+    }
+});
+function renderGestioneRosa() {
+    const container = document.getElementById('rosaManagementContainer');
+    if (!container) return;
+    
+    container.innerHTML = `
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
+            
+            <!-- SEZIONE AGGIUNGI GIOCATORE -->
+            <div style="background: white; border-radius: 12px; padding: 2rem; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                <h3 style="margin-top: 0; color: var(--success-color);">
+                    <i class="fas fa-user-plus"></i> Aggiungi Giocatore
+                </h3>
+                
+                <form id="addPlayerForm" style="display: flex; flex-direction: column; gap: 1rem;">
+                    <div>
+                        <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Nome</label>
+                        <input type="text" id="newPlayerName" required 
+                               style="width: 100%; padding: 0.75rem; border: 2px solid #e5e7eb; border-radius: 8px;" 
+                               placeholder="Es: Mario Rossi">
+                    </div>
+                    
+                    <div>
+                        <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Ruolo</label>
+                        <select id="newPlayerRole" required 
+                                style="width: 100%; padding: 0.75rem; border: 2px solid #e5e7eb; border-radius: 8px;">
+                            <option value="">Seleziona ruolo</option>
+                            <option value="P">Portiere (P)</option>
+                            <option value="D">Difensore (D)</option>
+                            <option value="C">Centrocampista (C)</option>
+                            <option value="A">Attaccante (A)</option>
+                        </select>
+                    </div>
+                    
+                    <div>
+                        <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Squadra</label>
+                        <select id="newPlayerTeam" required 
+                                style="width: 100%; padding: 0.75rem; border: 2px solid #e5e7eb; border-radius: 8px;">
+                            <option value="">Seleziona squadra</option>
+                            ${classifica.map(team => `<option value="${team.nome}">${team.nome}</option>`).join('')}
+                        </select>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-success" style="margin-top: 1rem;">
+                        <i class="fas fa-plus"></i> Aggiungi alla Rosa
+                    </button>
+                </form>
+            </div>
+            
+            <!-- SEZIONE ROSA ATTUALE -->
+            <div style="background: white; border-radius: 12px; padding: 2rem; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                <h3 style="margin-top: 0; color: var(--primary-color);">
+                    <i class="fas fa-users"></i> Rosa Attuale (${rosa.length} giocatori)
+                </h3>
+                
+                <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
+                    <input type="text" id="searchPlayer" 
+                           placeholder="Cerca giocatore..." 
+                           onkeyup="filterRosa()"
+                           style="flex: 1; padding: 0.75rem; border: 2px solid #e5e7eb; border-radius: 8px;">
+                    <select id="filterRole" data-action="filter-rosa" 
+                            style="padding: 0.75rem; border: 2px solid #e5e7eb; border-radius: 8px;">
+                        <option value="">Tutti i ruoli</option>
+                        <option value="P">Portieri</option>
+                        <option value="D">Difensori</option>
+                        <option value="C">Centrocampisti</option>
+                        <option value="A">Attaccanti</option>
+                    </select>
+                </div>
+                
+                <div id="rosaList" style="max-height: 400px; overflow-y: auto;">
+                    <!-- Generato dinamicamente -->
+                </div>
+            </div>
+        </div>
+    `;
+    
+    renderRosaList();
+}
+// ============================================
+// 🎯 GESTIONE ROSA - VERSIONE CORRETTA
+// ============================================
+function getRuoloBadgeColor(ruolo) {
+    const colors = {
+        'P': '#f59e0b',  // Arancione per Portiere
+        'D': '#10b981',  // Verde per Difensore
+        'C': '#3b82f6',  // Blu per Centrocampista
+        'A': '#ef4444'   // Rosso per Attaccante
+    };
+    return colors[ruolo] || '#6b7280';
+}
+
+function getRuoloCompleto(ruolo) {
+    const ruoli = {
+        'P': 'Portiere',
+        'D': 'Difensore',
+        'C': 'Centrocampista',
+        'A': 'Attaccante'
+    };
+    return ruoli[ruolo] || ruolo;
+}
+
+function renderRosaList() {
+    const container = document.getElementById('rosaList');
+    if (!container) return;
+    
+    const searchTerm = document.getElementById('searchPlayer')?.value.toLowerCase() || '';
+    const roleFilter = document.getElementById('filterRole')?.value || '';
+    
+    const filteredRosa = rosa.filter(player => {
+        const matchSearch = player.nome.toLowerCase().includes(searchTerm);
+        const ruoloNormalizzato = normalizzaRuolo(player.ruolo); // ⭐ Normalizza
+        const matchRole = !roleFilter || ruoloNormalizzato === roleFilter;
+        return matchSearch && matchRole;
+    });
+    
+    if (filteredRosa.length === 0) {
+        container.innerHTML = '<p style="text-align: center; color: var(--text-secondary); padding: 2rem;">Nessun giocatore trovato</p>';
+        return;
+    }
+    
+    container.innerHTML = filteredRosa.map(player => {
+        const ruoloNormalizzato = normalizzaRuolo(player.ruolo); // ⭐ Normalizza
+        return `
+        <div style="display: flex; align-items: center; justify-content: space-between; padding: 1rem; border-bottom: 1px solid #e5e7eb; transition: all 0.2s;"
+             onmouseover="this.style.background='#f9fafb'" 
+             onmouseout="this.style.background='white'">
+            <div style="display: flex; align-items: center; gap: 1rem;">
+                <div style="width: 40px; height: 40px; background: ${getRuoloBadgeColor(ruoloNormalizzato)}; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: 700;">
+                    ${ruoloNormalizzato}
+                </div>
+                <div>
+                    <div style="font-weight: 600;">${player.nome}</div>
+                    <div style="font-size: 0.85rem; color: var(--text-secondary);">
+                        ${player.squadra} • ${getRuoloCompleto(ruoloNormalizzato)}
+                    </div>
+                </div>
+            </div>
+            <button data-action="remove-giocatore" data-player="${player.nome}" 
+                    class="btn btn-danger" 
+                    style="padding: 0.5rem 1rem;">
+                <i class="fas fa-trash"></i> Rimuovi
+            </button>
+        </div>
+    `;
+    }).join('');
+}
+
+
+function getRuoloCompleto(ruolo) {
+    const ruoli = {
+        'P': 'Portiere',
+        'D': 'Difensore',
+        'C': 'Centrocampista',
+        'A': 'Attaccante'
+    };
+    return ruoli[ruolo] || ruolo;
+}
+
+// ============================================
+// 🎯 NORMALIZZA RUOLO (converte numeri in lettere)
+// ============================================
+
+function normalizzaRuolo(ruolo) {
+    // Se è già una lettera, restituiscila
+    if (typeof ruolo === 'string' && ruolo.length === 1) {
+        return ruolo.toUpperCase();
+    }
+    
+    // Converte numeri in lettere
+    const mappatura = {
+        0: 'P',
+        1: 'D',
+        2: 'C',
+        3: 'A',
+        '0': 'P',
+        '1': 'D',
+        '2': 'C',
+        '3': 'A'
+    };
+    
+    return mappatura[ruolo] || ruolo;
+}
+
+// ============================================
+// 🎯 AGGIUNGI GIOCATORE (con normalizzazione)
+// ============================================
+
+// ============================================
+// 🎯 ORDINA ROSA PER RUOLO
+// ============================================
+
+function ordinaRosaPerRuolo() {
+    // Ordine: Portieri, Difensori, Centrocampisti, Attaccanti
+    const ordineRuoli = ['P', 'D', 'C', 'A'];
+    
+    rosa.sort((a, b) => {
+        const ruoloA = normalizzaRuolo(a.ruolo);
+        const ruoloB = normalizzaRuolo(b.ruolo);
+        
+        const indexA = ordineRuoli.indexOf(ruoloA);
+        const indexB = ordineRuoli.indexOf(ruoloB);
+        
+        // Prima ordina per ruolo
+        if (indexA !== indexB) {
+            return indexA - indexB;
+        }
+        
+        // Se stesso ruolo, ordina per nome alfabetico
+        return a.nome.localeCompare(b.nome);
+    });
+}
+
+// ============================================
+// 🎯 AGGIUNGI GIOCATORE (con auto-ordinamento)
+// ============================================
+
+function aggiungiGiocatore(event) {
+    event.preventDefault();
+    
+    if (rosa.length >= 25) {
+        showNotification('❌ Rosa completa! Massimo 25 giocatori', 'error');
+        return;
+    }
+    
+    const nome = document.getElementById('newPlayerName').value.trim();
+    const ruolo = document.getElementById('newPlayerRole').value;
+    const squadra = document.getElementById('newPlayerTeam').value;
+    
+    const conteggioRuoli = {
+        'P': rosa.filter(p => normalizzaRuolo(p.ruolo) === 'P').length,
+        'D': rosa.filter(p => normalizzaRuolo(p.ruolo) === 'D').length,
+        'C': rosa.filter(p => normalizzaRuolo(p.ruolo) === 'C').length,
+        'A': rosa.filter(p => normalizzaRuolo(p.ruolo) === 'A').length
+    };
+    
+    const limiti = {
+        'P': 3,
+        'D': 8,
+        'C': 8,
+        'A': 6
+    };
+    
+    if (conteggioRuoli[ruolo] >= limiti[ruolo]) {
+        const ruoloNome = getRuoloCompleto(ruolo);
+        showNotification(`❌ Limite raggiunto per ${ruoloNome}! Hai ${conteggioRuoli[ruolo]}/${limiti[ruolo]}`, 'error');
+        return;
+    }
+    
+    if (rosa.some(p => p.nome.toLowerCase() === nome.toLowerCase())) {
+        showNotification('❌ Giocatore già presente nella rosa', 'error');
+        return;
+    }
+    
+    const nuovoGiocatore = {
+        nome: nome,
+        ruolo: ruolo,
+        squadra: squadra,
+        media_voto: 0,
+        gol: 0,
+        assist: 0,
+        ammonizioni: 0,
+        espulsioni: 0,
+        rigori_parati: 0,
+        rigori_sbagliati: 0,
+        autogol: 0,
+        punteggio_totale: 0
+    };
+    
+    rosa.push(nuovoGiocatore);
+    
+    // ⭐ ORDINA AUTOMATICAMENTE PER RUOLO
+    ordinaRosaPerRuolo();
+    
+    document.getElementById('newPlayerName').value = '';
+    document.getElementById('newPlayerRole').value = '';
+    document.getElementById('newPlayerTeam').value = '';
+    
+    renderRosaList();
+    renderGestioneRosa();
+    
+    try {
+        localStorage.setItem('fantacalcio_rosa', JSON.stringify(rosa));
+    } catch(e) {
+        console.warn('Impossibile salvare');
+    }
+    
+    showNotification(`✅ ${nome} aggiunto! (${getRuoloCompleto(ruolo)}: ${conteggioRuoli[ruolo] + 1}/${limiti[ruolo]})`, 'success');
+}
+
+
+
+
+// ============================================
+// 🎯 CLASSIFICA EDITOR CON ANIMAZIONE
+// ============================================
+
+// ============================================
+// 🎯 MOVE TEAM CON ANIMAZIONE
+// ============================================
+
+// ============================================
+// 🎯 MOVE TEAM CON ANIMAZIONE FLUIDA
+// ============================================
+
+function moveTeam(index, direction) {
+    const tbody = document.getElementById('classificaEditorBody');
+    if (!tbody) return;
+    
+    const puntipPerPosizione = classifica.map(t => t.punti);
+    let targetIndex;
+    
+    if (direction === 'up' && index > 0) {
+        targetIndex = index - 1;
+    } else if (direction === 'down' && index < classifica.length - 1) {
+        targetIndex = index + 1;
+    } else {
+        return;
+    }
+    
+    const row1 = tbody.children[index];
+    const row2 = tbody.children[targetIndex];
+    
+    if (!row1 || !row2) return;
+    
+    // ⭐ Disabilita pulsanti durante l'animazione
+    tbody.style.pointerEvents = 'none';
+    
+    // ⭐ Applica transizioni fluide
+    row1.style.transition = 'all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55)';
+    row2.style.transition = 'all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55)';
+    
+    // ⭐ Evidenzia e scala
+    row1.style.background = 'linear-gradient(135deg, #dbeafe, #93c5fd)';
+    row2.style.background = 'linear-gradient(135deg, #fef3c7, #fcd34d)';
+    row1.style.transform = 'scale(1.05) translateX(10px)';
+    row2.style.transform = 'scale(1.05) translateX(10px)';
+    row1.style.boxShadow = '0 4px 12px rgba(59, 130, 246, 0.3)';
+    row2.style.boxShadow = '0 4px 12px rgba(251, 191, 36, 0.3)';
+    
+    setTimeout(() => {
+        // Scambia nell'array
+        const temp = classifica[index];
+        classifica[index] = classifica[targetIndex];
+        classifica[targetIndex] = temp;
+        
+        classifica[index].punti = puntipPerPosizione[index];
+        classifica[targetIndex].punti = puntipPerPosizione[targetIndex];
+        
+        // Re-renderizza
+        renderClassificaEditor();
+        
+        // ⭐ Evidenzia le righe scambiate con effetto pulse
+        setTimeout(() => {
+            const newRow1 = tbody.children[targetIndex];
+            const newRow2 = tbody.children[index];
+            
+            tbody.style.pointerEvents = 'auto';
+            
+            if (newRow1) {
+                newRow1.style.transition = 'all 0.6s ease';
+                newRow1.style.background = 'linear-gradient(135deg, #d1fae5, #6ee7b7)';
+                newRow1.style.transform = 'scale(1.03)';
+                
+                setTimeout(() => {
+                    newRow1.style.background = 'white';
+                    newRow1.style.transform = 'scale(1)';
+                }, 600);
+            }
+            
+            if (newRow2) {
+                newRow2.style.transition = 'all 0.6s ease';
+                newRow2.style.background = 'linear-gradient(135deg, #d1fae5, #6ee7b7)';
+                newRow2.style.transform = 'scale(1.03)';
+                
+                setTimeout(() => {
+                    newRow2.style.background = 'white';
+                    newRow2.style.transform = 'scale(1)';
+                }, 600);
+            }
+        }, 50);
+        
+        showNotification('✅ Squadra spostata', 'success');
+    }, 400);
+}
+
+
+
+
+function rimuoviGiocatore(nomeGiocatore) {
+    if (!confirm(`Vuoi rimuovere ${nomeGiocatore} dalla rosa?`)) {
+        return;
+    }
+    
+    const index = rosa.findIndex(p => p.nome === nomeGiocatore);
+    
+    if (index !== -1) {
+        rosa.splice(index, 1);
+        renderRosaList();
+        renderGestioneRosa(); // Aggiorna contatore
+        
+        // ⭐ Salva nel localStorage
+        try {
+            localStorage.setItem('fantacalcio_rosa', JSON.stringify(rosa));
+        } catch(e) {
+            console.warn('Impossibile salvare nel localStorage');
+        }
+        
+        showNotification(`✅ ${nomeGiocatore} rimosso dalla rosa (${rosa.length}/25)`, 'success');
+    }
+}
+
+function filterRosa() {
+    renderRosaList();
+}
+// ============================================
+// 🎯 INIT APP - CARICAMENTO PAGINA (UNIFICATO)
+// ============================================
+// ============================================
+// 🎯 INIT APP - CARICAMENTO PAGINA (UNIFICATO)
+// ============================================
+document.addEventListener('DOMContentLoaded', function() {
+    
+    // 1️⃣ Inizializza app
+    initializeApp();
+    setupEventListeners();
+    
+    // 2️⃣ Rimuovi style inline dal pulsante mobile
+    const btn = document.getElementById('mobileMenuBtn');
+    if (btn) {
+        btn.removeAttribute('style');
+        console.log('✅ Style inline rimosso');
+    }
+    
+    // 3️⃣ Pulsante calcola punteggi
+    const calcPunteggiBtn = document.getElementById('calcPunteggi');
+    if (calcPunteggiBtn) {
+        calcPunteggiBtn.addEventListener('click', function() {
+            if (confirm('⚠️ Ricalcolare i punteggi?\n\nSovrascriverà i punteggi attuali.')) {
+                calcolaPunteggi();
+            }
+        });
+    }
+    
+    // 4️⃣ Aggiungi CSS dinamico per stato option
+    const style = document.createElement('style');
+    style.textContent = `
+        .stato-option:has(input:checked) {
+            background: linear-gradient(135deg, var(--primary-color), #2563eb);
+            border-color: var(--primary-color) !important;
+            color: white;
+        }
+        
+        .stato-option:has(input:checked) i {
+            color: white !important;
+        }
+        
+        .stato-option:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+        }
+    `;
+    document.head.appendChild(style);
+    
+    // 5️⃣ Inizializza sezione gestione
+    initGestioneSection();
+    
+    // 6️⃣ Menu mobile toggle
+    const menuToggle = document.getElementById('menuToggle');
+    const sidebar = document.getElementById('sidebar');
+    
+    // Crea overlay se non esiste
+    let overlay = document.querySelector('.sidebar-overlay');
+    if (!overlay) {
+        overlay = document.createElement('div');
+        overlay.className = 'sidebar-overlay';
+        overlay.id = 'sidebarOverlay';
+        document.body.appendChild(overlay);
+    }
+    
+    // Toggle sidebar
+    if (menuToggle) {
+        menuToggle.addEventListener('click', function() {
+            sidebar.classList.toggle('active');
+            overlay.classList.toggle('active');
+        });
+    }
+    
+    // Chiudi con overlay
+    overlay.addEventListener('click', function() {
+        sidebar.classList.remove('active');
+        overlay.classList.remove('active');
+        document.body.style.overflow = 'auto';
+    });
+    
+    // 7️⃣ Chiudi menu quando clicchi un link sidebar (mobile)
+    document.querySelectorAll('.nav-item').forEach(item => {
+        item.addEventListener('click', function() {
+            if (window.innerWidth <= 768) {
+                if (sidebar?.classList.contains('active')) {
+                    sidebar.classList.remove('active');
+                    overlay.classList.remove('active');
+                    
+                    const icon = btn?.querySelector('i');
+                    if (icon) icon.className = 'fas fa-bars';
+                    
+                    document.body.style.overflow = 'auto';
+                }
+            }
+        });
+    });
+    
+    // 8️⃣ Form submit
+    const addPlayerForm = document.getElementById('addPlayerForm');
+    if (addPlayerForm) {
+        addPlayerForm.addEventListener('submit', aggiungiGiocatore);
+    }
+    
+    // 9️⃣ Select change
+    const filterRole = document.getElementById('filterRole');
+    if (filterRole) {
+        filterRole.addEventListener('change', filterRosa);
+    }
+    
+    console.log('✅ App inizializzata');
+});
+
+// ============================================
+// 🎯 EVENT DELEGATION GLOBALE - RISOLVE CSP
+// ============================================
+document.addEventListener('click', function(e) {
+    const target = e.target.closest('[data-action], [data-player]');
+    if (!target) return;
+    
+    // ⭐ Stop propagation se richiesto
+    if (target.dataset.stopPropagation === 'true') {
+        e.stopPropagation();
+    }
+    
+    const action = target.dataset.action;
+    const player = target.dataset.player;
+    
+    // Player details
+    if (player) {
+        showPlayerDetails(player);
+        return;
+    }
+    
+    // Actions base (già esistenti nel primo listener)
+    if (action === 'esporta') {
+        esportaModifiche();
+        return;
+    }
+    if (action === 'save-player') {
+        savePlayerEdit();
+        return;
+    }
+    if (action === 'cancel-edit') {
+        cancelPlayerEdit();
+        return;
+    }
+    if (action === 'save-classifica') {
+        saveClassificaEdit();
+        return;
+    }
+    
+    // Actions aggiuntive
+    switch(action) {
+        case 'filter-rosa':
+            filterRosa();
+            break;
+        case 'update-points':
+            updateTeamPoints(parseInt(target.dataset.teamIndex), target.value);
+            break;
+        case 'move-up':
+            moveTeam(parseInt(target.dataset.index), 'up');
+            break;
+        case 'move-down':
+            moveTeam(parseInt(target.dataset.index), 'down');
+            break;
+        case 'page':
+            changePage(parseInt(target.dataset.page));
+            break;
+        case 'wizard-step':
+            showWizardStep(parseInt(target.dataset.step));
+            break;
+        case 'import-method':
+            selectImportMethod(target.dataset.method);
+            break;
+        case 'load-json':
+            document.getElementById('loadRosaJson').click();
+            break;
+        case 'finish-wizard':
+            finishWizard();
+            break;
+        case 'finish-wizard-manual':
+            finishWizardManual();
+            break;
+        case 'add-player-manual':
+            addPlayerManual();
+            break;
+        case 'remove-player':
+            removePlayer(parseInt(target.dataset.index));
+            break;
+        case 'remove-giocatore':
+            rimuoviGiocatore(target.dataset.player);
+            break;
     }
 });
