@@ -166,51 +166,23 @@
                     <button class="btn btn-primary btn-sm" data-sort="ruolo">Ruolo</button>
                 </div>
                 
-                <!-- Filtro ruolo -->
-                <div style="display: flex; align-items: center; gap: 0.5rem;">
-                    <span style="font-weight: 600; font-size: 0.9rem;">Ruolo:</span>
-                    <select id="roleFilter" onchange="filterByRole(this.value)" style="padding: 0.5rem; border-radius: 6px; border: 1px solid #ddd;">
-                        <option value="all">Tutti</option>
-                        <option value="0">Portieri</option>
-                        <option value="1">Difensori</option>
-                        <option value="2">Centrocampisti</option>
-                        <option value="3">Attaccanti</option>
-                    </select>
-                </div>
-                
-                <!-- Giocatori per pagina -->
-                <div style="display: flex; align-items: center; gap: 0.5rem;">
-                    <span style="font-weight: 600; font-size: 0.9rem;">Per pagina:</span>
-                    <select id="itemsPerPage" onchange="changeItemsPerPage(this.value)" style="padding: 0.5rem; border-radius: 6px; border: 1px solid #ddd;">
-                        <option value="10">10</option>
-                        <option value="15" selected>15</option>
-                        <option value="25">25 (Tutti)</option>
-                    </select>
-                </div>
             </div>
-        </div>
-    </div>
-    
-    <!-- Search bar -->
-    <div class="card">
-        <div class="card-body">
-            <input type="text" id="searchPlayerDashboard" placeholder="🔍 Cerca giocatore o squadra..." 
-                   style="width: 100%; padding: 0.75rem; border: 1px solid #ddd; border-radius: 8px; font-size: 1rem;">
         </div>
     </div>
     
     <!-- Tabella -->
     <div class="card">
         <div class="table-container">
-            <table>
+            <table class="centro">
                 <thead>
                     <tr>
-                        <th style="width: 5%;">#</th>
-                        <th style="width: 25%;">Nome</th>
-                        <th style="width: 10%;">Ruolo</th>
+                        <th style="width: 5%;">Nome</th>
+                        <th style="width: 5%;">Ruolo</th>
                         <th style="width: 15%;">Squadra</th>
                         <th style="width: 12%;">Punteggio</th>
                         <th style="width: 13%;">Titolarità</th>
+                        <th style="width: 10%;">Avversario</th>
+                        <th style="width: 10%;">Difficolta</th>
                         <th style="width: 10%;">Stato</th>
                         <th style="width: 10%;">Azioni</th>
                     </tr>
@@ -220,15 +192,6 @@
         </div>
     </div>
     
-    <!-- Controlli paginazione -->
-    <div class="card" style="margin-top: 1rem;">
-        <div class="card-body" style="padding: 1rem;">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-                <div id="paginationInfo" style="color: var(--text-secondary); font-size: 0.9rem;"></div>
-                <div id="paginationControls" style="display: flex; gap: 0.5rem;"></div>
-            </div>
-        </div>
-    </div>
 </section>
 
         <!-- Migliore Formazione Section -->
@@ -258,17 +221,18 @@
 
         <!-- Classifica Section -->
         <section id="classifica" class="content-section">
-            <h1>Classifica Serie A</h1>
+            <h1>Classifica Forza Serie A</h1>
             <div class="card">
                 <div class="card-body">
                     <div class="table-responsive">
                         <table id="classificaTable" class="data-table">
-                            <thead>
+                            <thead class="classifica-header">
                                 <tr>
                                     <th>#</th>
                                     <th>Squadra</th>
                                     <th>Punti</th>
                                     <th>Forza</th>
+                                    
                                 </tr>
                             </thead>
                             <tbody id="classificaTableBody"></tbody>
@@ -378,24 +342,24 @@
                     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
                         <div>
                             <label style="display: block; font-weight: 600; margin-bottom: 0.5rem;">Nome:</label>
-                            <input type="text" id="editNome-modale" class="form-control" disabled 
+                            <input type="text" id="editNome" class="form-control" disabled 
                                    style="background: #f3f4f6; font-weight: 700; font-size: 1.1rem;">
                         </div>
                         <div>
                             <label style="display: block; font-weight: 600; margin-bottom: 0.5rem;">Squadra:</label>
-                            <input type="text" id="editSquadra-modale" class="form-control">
+                            <input type="text" id="editSquadra" class="form-control">
                         </div>
                         <div>
                             <label style="display: block; font-weight: 600; margin-bottom: 0.5rem;">
                                 <i class="fas fa-percentage"></i> Titolarità (%):
                             </label>
-                            <input type="number" id="editTitolarita-modale" class="form-control" min="0" max="100" step="12.5">
+                            <input type="number" id="editTitolarita" class="form-control" min="0" max="100" step="12.5">
                         </div>
                         <div>
                             <label style="display: block; font-weight: 600; margin-bottom: 0.5rem;">
                                 <i class="fas fa-shield-alt"></i> Avversario:
                             </label>
-                            <select id="editAvversario-modale" class="form-control"></select>
+                            <select id="editAvversario" class="form-control"></select>
                         </div>
                     </div>
                 </div>
@@ -432,39 +396,39 @@
                     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem;">
                         <div>
                             <label><i class="fas fa-futbol"></i> Goals:</label>
-                            <input type="number" id="editGoals-modale" class="form-control" min="0">
+                            <input type="number" id="editGoals" class="form-control" min="0">
                         </div>
                         <div>
                             <label><i class="fas fa-hands-helping"></i> Assist:</label>
-                            <input type="number" id="editAssist-modale" class="form-control" min="0">
+                            <input type="number" id="editAssist" class="form-control" min="0">
                         </div>
                         <div>
                             <label><i class="fas fa-clock"></i> Minuti:</label>
-                            <input type="number" id="editMinuti-modale" class="form-control" min="0">
+                            <input type="number" id="editMinuti" class="form-control" min="0">
                         </div>
                         <div>
             <label><i class="fas fa-shield-alt"></i> Clean Sheet:</label>
-            <input type="number" id="editCleanSheet-modale" class="form-control" min="0">
+            <input type="number" id="editCleanSheet" class="form-control" min="0">
         </div>
         <div>
             <label><i class="fas fa-crosshairs"></i> Gol Subiti:</label>
-            <input type="number" id="editGolSubiti-modale" class="form-control" min="0">
+            <input type="number" id="editGolSubiti" class="form-control" min="0">
         </div>
         <div>
             <label><i class="fas fa-bolt"></i> xGoals:</label>
-            <input type="number" id="editXgoals-modale" class="form-control" min="0" step="0.1">
+            <input type="number" id="editXgoals" class="form-control" min="0" step="0.1">
         </div>
         <div>
             <label><i class="fas fa-hands-helping"></i> xAssist:</label>
-            <input type="number" id="editXassist-modale" class="form-control" min="0" step="0.1">
+            <input type="number" id="editXassist" class="form-control" min="0" step="0.1">
         </div>
         <div>
             <label><i class="fas fa-star"></i> Media Voto:</label>
-            <input type="number" id="editMediaVoto-modale" class="form-control" min="0" max="10" step="0.1">
+            <input type="number" id="editMediaVoto" class="form-control" min="0" max="10" step="0.1">
         </div>
         <div>
             <label><i class="fas fa-trophy"></i> Media Fantavoto:</label>
-            <input type="number" id="editMediaFantavoto-modale" class="form-control" min="0" max="10" step="0.1">
+            <input type="number" id="editMediaFantavoto" class="form-control" min="0" max="10" step="0.1">
         </div>
                         
                         <!-- Dopo Media Fantavoto -->
@@ -488,7 +452,7 @@
     <!-- Editor Classifica -->
     <div class="card" style="margin-top: 2rem; background: linear-gradient(135deg, #fef3c7, white); border: 2px solid var(--warning-color);">
         <div class="card-header" style="background: linear-gradient(135deg, var(--warning-color), #d97706); color: white;">
-            <h2 style="margin: 0;"><i class="fas fa-ranking-star"></i> Modifica Classifica Serie A</h2>
+            <h2 style="margin: 0;"><i class="fas fa-ranking-star"></i> Modifica Classifica Forza Serie A</h2>
         </div>
         <div class="card-body" style="padding: 2rem;">
             <div id="classificaEditor" style="background: white; padding: 1.5rem; border-radius: 12px;"></div>

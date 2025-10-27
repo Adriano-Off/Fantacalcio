@@ -2399,3 +2399,44 @@ body {
   overflow: hidden; clip: rect(0,0,0,0);
   border: 0;
 }
+.badge-portiere { background: #60a5fa; color: white; }         /* blu */
+.badge-difensore { background: #10b981; color: white; }        /* verde */
+.badge-centrocampista { background: #f59e42; color: white; }   /* arancione */
+.badge-attaccante { background: #ef4444; color: white; }       /* rosso */
+.table-container table {
+    width: 100%;
+    border-collapse: collapse;
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.table-container th,
+.table-container td {
+    padding: 0.75rem 1rem;
+    text-align: left;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.table-container thead tr:hover,
+.table-container thead th:hover {
+    background: var(--primary-color) !important; /* Il blu acceso che hai nei titoli */
+    color: white !important;
+}
+
+.table-container thead {
+    background: var(--primary-color);
+    color: white;
+}
+.table th, table td {
+    text-align: center !important;
+    vertical-align: middle;
+}
+
+table.centro th, table.centro td {
+    text-align: center !important;
+    vertical-align: middle;
+}
+.classifica-header th {
+    text-align: center !important;
+    vertical-align: middle;
+}
