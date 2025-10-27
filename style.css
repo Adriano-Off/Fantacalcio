@@ -1613,3 +1613,326 @@ input[type="radio"] {
         grid-template-columns: repeat(2, 1fr);
     }
 }
+/* ============================================
+   WIZARD SETUP MOBILE
+   ============================================ */
+
+/* Wizard responsive - tablet */
+@media screen and (max-width: 1024px) {
+    #setupWizard > div {
+        max-width: 90%;
+        padding: 2rem;
+    }
+    
+    .method-card {
+        padding: 1.5rem;
+    }
+}
+
+/* Wizard responsive - mobile */
+@media screen and (max-width: 768px) {
+    #setupWizard {
+        padding: 1rem;
+        align-items: flex-start;
+        overflow-y: auto;
+    }
+    
+    #setupWizard > div {
+        width: 100%;
+        max-width: 100%;
+        padding: 1.5rem;
+        margin: 0;
+        border-radius: 12px;
+        max-height: none;
+    }
+    
+    /* Step 1: Benvenuto */
+    #wizardStep1 h1 {
+        font-size: 1.8rem;
+    }
+    
+    #wizardStep1 .fas.fa-futbol {
+        font-size: 3rem;
+    }
+    
+    #wizardStep1 p {
+        font-size: 1rem;
+    }
+    
+    /* Step 2: Scelta metodo - 1 colonna */
+    #wizardStep2 > div[style*="grid"] {
+        display: flex !important;
+        flex-direction: column;
+        gap: 1rem;
+    }
+    
+    .method-card {
+        padding: 2rem 1rem;
+        width: 100%;
+        border-width: 2px;
+    }
+    
+    .method-card i {
+        font-size: 2.5rem;
+    }
+    
+    .method-card h3 {
+        font-size: 1.1rem;
+    }
+    
+    /* Step 3: CSV Upload */
+    .file-upload label {
+        padding: 2rem 1rem;
+    }
+    
+    .file-upload i {
+        font-size: 3rem;
+    }
+    
+    #wizardStep3 code {
+        font-size: 0.7rem;
+        white-space: pre-wrap;
+        word-break: break-all;
+    }
+    
+    /* Step 4: Form manuale - 1 colonna */
+    #addPlayerForm > div[style*="grid"] {
+        display: flex !important;
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+    
+    #addPlayerForm h4 {
+        margin: 1rem 0 0.5rem 0;
+        font-size: 1rem;
+    }
+    
+    #addPlayerForm input,
+    #addPlayerForm select {
+        font-size: 16px; /* Previene zoom iOS */
+        padding: 0.75rem;
+    }
+    
+    #addPlayerForm label {
+        font-size: 0.9rem;
+        margin-bottom: 0.25rem;
+    }
+    
+    /* Lista giocatori aggiunti */
+    #manualPlayersList {
+        max-height: 150px;
+        margin-bottom: 1rem;
+    }
+    
+    #addedPlayersList > div {
+        flex-direction: column;
+        align-items: flex-start;
+        padding: 0.75rem;
+    }
+    
+    #addedPlayersList small {
+        margin-top: 0.5rem;
+    }
+    
+    /* Bottoni wizard */
+    .wizard-step button {
+        padding: 1rem;
+        font-size: 1rem;
+        border-radius: 8px;
+    }
+    
+    #wizardStep3 > div[style*="flex"],
+    #wizardStep4 > div[style*="flex"] {
+        flex-direction: column !important;
+        gap: 0.75rem;
+    }
+    
+    #wizardStep3 > div[style*="flex"] button,
+    #wizardStep4 > div[style*="flex"] button {
+        width: 100%;
+        flex: none !important;
+    }
+    
+    /* Info box */
+    div[style*="background: #fef3c7"] {
+        padding: 1rem;
+        margin-top: 1rem;
+    }
+    
+    div[style*="background: #fef3c7"] p {
+        font-size: 0.9rem;
+    }
+}
+
+/* Wizard responsive - mobile piccolo */
+@media screen and (max-width: 480px) {
+    #setupWizard > div {
+        padding: 1rem;
+    }
+    
+    #wizardStep1 h1 {
+        font-size: 1.5rem;
+    }
+    
+    #wizardStep1 .fas.fa-futbol {
+        font-size: 2.5rem;
+    }
+    
+    .method-card {
+        padding: 1.5rem 1rem;
+    }
+    
+    .method-card i {
+        font-size: 2rem;
+    }
+    
+    .method-card h3 {
+        font-size: 1rem;
+    }
+    
+    .method-card p {
+        font-size: 0.85rem;
+    }
+    
+    #addPlayerForm {
+        padding: 1rem;
+    }
+    
+    #addPlayerForm input,
+    #addPlayerForm select {
+        padding: 0.6rem;
+    }
+    
+    .wizard-step h2 {
+        font-size: 1.2rem;
+    }
+    
+    #wizardStep3 code {
+        font-size: 0.65rem;
+        padding: 0.75rem;
+    }
+}
+
+/* Fix per statistiche in Step 4 */
+@media screen and (max-width: 768px) {
+    /* Grid statistiche - 2 colonne invece di 3 */
+    #addPlayerForm div[style*="repeat(3, 1fr)"] {
+        display: grid !important;
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 0.75rem;
+    }
+    
+    /* Ultima riga info centrata */
+    #addPlayerForm div[style*="repeat(3, 1fr)"] > div:last-child {
+        grid-column: 1 / -1;
+    }
+}
+
+/* Landscape mobile per wizard */
+@media screen and (max-width: 768px) and (orientation: landscape) {
+    #setupWizard {
+        padding: 0.5rem;
+    }
+    
+    #setupWizard > div {
+        padding: 1rem;
+    }
+    
+    .method-card {
+        padding: 1rem;
+    }
+    
+    #addPlayerForm {
+        padding: 1rem;
+    }
+}
+
+/* Touch improvements per wizard */
+@media (hover: none) and (pointer: coarse) {
+    .method-card {
+        min-height: 120px;
+        cursor: pointer;
+        -webkit-tap-highlight-color: rgba(59, 130, 246, 0.1);
+    }
+    
+    .method-card:active {
+        transform: scale(0.98);
+        background: #f0f9ff;
+    }
+    
+    .wizard-step button {
+        min-height: 48px;
+        -webkit-tap-highlight-color: transparent;
+    }
+    
+    #addPlayerForm input,
+    #addPlayerForm select {
+        min-height: 44px;
+    }
+}
+/* Fix iOS Safari */
+input,
+select,
+textarea {
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    border-radius: 8px;
+}
+
+/* Previeni zoom su focus iOS */
+@media screen and (max-width: 768px) {
+    input,
+    select,
+    textarea {
+        font-size: 16px !important;
+    }
+}
+
+/* Smooth scroll */
+html {
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* Miglior rendering font mobile */
+body {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+}
+/* Pulsante hamburger mobile */
+.mobile-menu-btn {
+    position: fixed;
+    top: 1rem;
+    left: 1rem;
+    z-index: 1001;
+    background: var(--primary-color);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+    font-size: 1.5rem;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    display: none; /* Nascosto di default */
+    transition: all 0.3s ease;
+}
+
+.mobile-menu-btn:hover {
+    transform: scale(1.05);
+    box-shadow: 0 6px 16px rgba(0,0,0,0.4);
+}
+
+.mobile-menu-btn:active {
+    transform: scale(0.95);
+}
+
+/* Mostra solo su mobile */
+@media screen and (max-width: 768px) {
+    .mobile-menu-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+}

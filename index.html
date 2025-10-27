@@ -8,6 +8,18 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
+     <!-- ✅ MENU HAMBURGER MOBILE -->
+    <button class="mobile-menu-btn" id="mobileMenuBtn" onclick="toggleMobileMenu()">
+        <i class="fas fa-bars"></i>
+    </button>
+    
+    <!-- OVERLAY PER CHIUDERE IL MENU -->
+    <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleMobileMenu()"></div>
+    
+    <!-- SIDEBAR (resto del codice) -->
+    <aside class="sidebar" id="sidebar">
+        <!-- ... contenuto sidebar esistente ... -->
+    </aside>
     <!-- Sidebar -->
     <div class="sidebar" id="sidebar">
         <div class="sidebar-header">
@@ -503,15 +515,4 @@
 
     <script src="script.js"></script>
 </body>
-<body>
-    <!-- Menu hamburger mobile -->
-    <button class="mobile-menu-btn" onclick="toggleMobileMenu()" style="display: none;">
-        <i class="fas fa-bars"></i>
-    </button>
-    
-    <!-- Overlay per sidebar -->
-    <div class="sidebar-overlay" onclick="toggleMobileMenu()"></div>
-    
-    <!-- Resto del codice... -->
-
 </html>

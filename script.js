@@ -3320,3 +3320,71 @@ document.querySelectorAll('.nav-item').forEach(item => {
         }
     });
 });
+// ============================================
+// MOBILE MENU
+// ============================================
+
+function toggleMobileMenu() {
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('sidebarOverlay');
+    const btn = document.getElementById('mobileMenuBtn');
+    
+    if (!sidebar || !overlay || !btn) {
+        console.error('Elementi menu mobile non trovati!');
+        return;
+    }
+    
+    sidebar.classList.toggle('active');
+    overlay.classList.toggle('active');
+    
+    // Cambia icona
+    const icon = btn.querySelector('i');
+    if (sidebar.classList.contains('active')) {
+        icon.className = 'fas fa-times';
+        document.body.style.overflow = 'hidden';
+    } else {
+        icon.className = 'fas fa-bars';
+        document.body.style.overflow = 'auto';
+    }
+}
+
+// Chiudi menu quando si clicca su una voce
+document.addEventListener('DOMContentLoaded', function() {
+    const navItems = document.querySelectorAll('.nav-item');
+    navItems.forEach(item => {
+        item.addEventListener('click', function() {
+            if (window.innerWidth <= 768) {
+                const sidebar = document.getElementById('sidebar');
+                const overlay = document.getElementById('sidebarOverlay');
+                const btn = document.getElementById('mobileMenuBtn');
+                
+                if (sidebar && sidebar.classList.contains('active')) {
+                    sidebar.classList.remove('active');
+                    overlay.classList.remove('active');
+                    
+                    const icon = btn.querySelector('i');
+                    if (icon) icon.className = 'fas fa-bars';
+                    
+                    document.body.style.overflow = 'auto';
+                }
+            }
+        });
+    });
+});
+
+// Gestisci resize finestra
+window.addEventListener('resize', function() {
+    const btn = document.getElementById('mobileMenuBtn');
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('sidebarOverlay');
+    
+    if (window.innerWidth > 768) {
+        // Desktop - rimuovi classi mobile
+        if (sidebar) sidebar.classList.remove('active');
+        if (overlay) overlay.classList.remove('active');
+        document.body.style.overflow = 'auto';
+        
+        const icon = btn?.querySelector('i');
+        if (icon) icon.className = 'fas fa-bars';
+    }
+});
