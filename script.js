@@ -4271,3 +4271,38 @@ document.addEventListener('click', function(e) {
             break;
     }
 });
+// Esporta tutte le statistiche giocatori in un unico CSV modificabile
+function esportaGiocatoriCSV(giocatori) {
+    const headers = [
+        "Nome","Squadra","Ruolo","Goals","Assist","Minuti","CleanSheet",
+        "GolSubiti","xGoals","xAssist","MediaVoto","MediaFantavoto",
+        "Titolarita","Infortunato","Avversario"
+    ];
+    let rows = giocatori.map(g =>
+        [
+            g.nome,
+            g.squadra,
+            g.ruolo,
+            g.stats.goals,
+            g.stats.assist,
+            g.stats.minuti,
+            g.stats.cleanSheet,
+            g.stats.golSubiti,
+            g.stats.xgoals,
+            g.stats.xassist,
+            g.stats.mediaVoto,
+            g.stats.mediaFantavoto,
+            g.titolarita,     // <-- fuori da g.stats
+            g.infortunato,    // <-- fuori da g.stats
+            g.avversario      // <-- fuori da g.stats
+        ].join(";")
+    );
+    let csv = headers.join(";") + "\n" + rows.join("\n");
+    let blob = new Blob([csv], {type: "text/csv"});
+    let a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "statistiche_giocatore.csv";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+}
