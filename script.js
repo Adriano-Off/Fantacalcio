@@ -3270,3 +3270,53 @@ async function handleWizardStatsCSV(file) {
         showNotification('❌ Errore import CSV', 'error');
     }
 }
+// ============================================
+// MOBILE MENU
+// ============================================
+
+// Mostra pulsante hamburger su mobile
+window.addEventListener('resize', checkMobileMenu);
+window.addEventListener('load', checkMobileMenu);
+
+function checkMobileMenu() {
+    const btn = document.querySelector('.mobile-menu-btn');
+    if (window.innerWidth <= 768) {
+        btn.style.display = 'block';
+    } else {
+        btn.style.display = 'none';
+        closeMobileMenu();
+    }
+}
+
+function toggleMobileMenu() {
+    const sidebar = document.querySelector('.sidebar');
+    const overlay = document.querySelector('.sidebar-overlay');
+    
+    sidebar.classList.toggle('active');
+    overlay.classList.toggle('active');
+    
+    // Blocca scroll quando menu aperto
+    if (sidebar.classList.contains('active')) {
+        document.body.style.overflow = 'hidden';
+    } else {
+        document.body.style.overflow = 'auto';
+    }
+}
+
+function closeMobileMenu() {
+    const sidebar = document.querySelector('.sidebar');
+    const overlay = document.querySelector('.sidebar-overlay');
+    
+    sidebar.classList.remove('active');
+    overlay.classList.remove('active');
+    document.body.style.overflow = 'auto';
+}
+
+// Chiudi menu quando si clicca su una voce
+document.querySelectorAll('.nav-item').forEach(item => {
+    item.addEventListener('click', () => {
+        if (window.innerWidth <= 768) {
+            closeMobileMenu();
+        }
+    });
+});
