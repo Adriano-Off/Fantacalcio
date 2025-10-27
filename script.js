@@ -129,7 +129,19 @@ async function initializeApp() {
     renderTopGiocatori();
     renderClassifica();
     
-    console.log('✅ App inizializzata');
+    // ============================================
+// FIX MOBILE BUTTON - Rimuove style inline
+// ============================================
+
+document.addEventListener('DOMContentLoaded', function() {
+    const btn = document.getElementById('mobileMenuBtn');
+    if (btn) {
+        btn.removeAttribute('style'); // Rimuove completamente lo style inline
+        console.log('✅ Style inline rimosso dal pulsante mobile');
+    }
+});
+
+    console.log('✅ App inizializzata');    
 }
 
 
