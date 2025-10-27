@@ -4276,7 +4276,7 @@ function esportaGiocatoriCSV(giocatori) {
     const headers = [
         "Nome","Squadra","Ruolo","Goals","Assist","Minuti","CleanSheet",
         "GolSubiti","xGoals","xAssist","MediaVoto","MediaFantavoto",
-        "Titolarita","Infortunato","Avversario"
+        "Titolarita","Infortunato","Avversario","RigoriParati"
     ];
     let rows = giocatori.map(g =>
         [
@@ -4292,9 +4292,10 @@ function esportaGiocatoriCSV(giocatori) {
             g.stats.xassist,
             g.stats.mediaVoto,
             g.stats.mediaFantavoto,
-            g.titolarita,     // <-- fuori da g.stats
-            g.infortunato,    // <-- fuori da g.stats
-            g.avversario      // <-- fuori da g.stats
+            g.titolarita,
+            g.infortunato,
+            g.avversario,
+            g.stats.rigoriParati // <-- AGGIUNTO qui
         ].join(";")
     );
     let csv = headers.join(";") + "\n" + rows.join("\n");
