@@ -83,7 +83,7 @@ async function autoReload() {
             await loadClassifica();
             renderDashboard();
             renderRosa();
-            showNotification('Dati aggiornati dal programma C', 'success');
+            //showNotification('Dati aggiornati dal programma C', 'success');
         }
         
         lastLoadTime = currentTime;
