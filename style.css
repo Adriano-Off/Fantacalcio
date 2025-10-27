@@ -28,18 +28,45 @@ body {
 }
 
 /* Sidebar */
+/* ============================================
+   SIDEBAR
+   ============================================ */
 .sidebar {
     position: fixed;
     left: 0;
     top: 0;
+    width: 250px;
     height: 100vh;
-    width: var(--sidebar-width);
-    background: var(--dark);
-    color: var(--white);
-    transition: transform 0.3s ease;
-    z-index: 1000;
+    /* ✅ Colore originale */
+    background: linear-gradient(180deg, #1E293B, #0f172a); /* Slate scuro con gradiente */
+    color: white;
+    padding: 2rem 0;
     overflow-y: auto;
+    transition: left 0.3s ease;
+    z-index: 100;
 }
+/* IMPORTANTE: Desktop - sempre visibile */
+@media screen and (min-width: 769px) {
+    .sidebar { 
+        left: 0 !important;
+    }
+    
+    .sidebar.active {
+        left: 0 !important; /* Blocca anche se ha classe active */
+    }
+}
+
+/* Mobile - nascosta di default */
+@media screen and (max-width: 768px) {
+    .sidebar {
+        left: -250px !important;
+    }
+    
+    .sidebar.active {
+        left: 0 !important;
+    }
+}
+
 
 .sidebar-header {
     padding: 2rem 1.5rem;
@@ -68,27 +95,36 @@ body {
     align-items: center;
     gap: 1rem;
     padding: 1rem 1.5rem;
-    color: var(--text-secondary);
+    color: white; /* ← ASSICURATI CHE CI SIA */
     text-decoration: none;
-    transition: all 0.3s ease;
-    cursor: pointer;
+    transition: all 0.2s;
+    border-left: 3px solid transparent;
 }
 
 .nav-item:hover {
-    background: var(--dark-secondary);
-    color: var(--white);
+    background: rgba(255, 255, 255, 0.1);
+    border-left-color: white;
+    color: white; /* ← AGGIUNGI */
 }
 
 .nav-item.active {
-    background: var(--primary-color);
-    color: var(--white);
-    border-left: 4px solid var(--white);
+    background: rgba(255, 255, 255, 0.15);
+    border-left-color: white;
+    font-weight: 600;
+    color: white; /* ← AGGIUNGI */
 }
 
 .nav-item i {
     font-size: 1.2rem;
     width: 24px;
+    text-align: center;
+    color: white; /* ← ASSICURATI CHE CI SIA */
 }
+
+.nav-item span {
+    color: white; /* ← AGGIUNGI QUESTA RIGA */
+}
+
 
 /* Main Content */
 .main-content {
@@ -1384,15 +1420,9 @@ input[type="radio"] {
 /* Media query per mobile (max 768px) */
 @media screen and (max-width: 768px) {
     /* Sidebar mobile - menu hamburger */
-    .sidebar {
-        position: fixed;
-        left: -250px;
-        width: 250px;
-        height: 100vh;
-        transition: left 0.3s ease;
-        z-index: 1000;
-        box-shadow: 2px 0 10px rgba(0,0,0,0.3);
-    }
+    /* ============================================
+   SIDEBAR - Colori leggibili
+   ============================================ */
     
     .sidebar.active {
         left: 0;
@@ -1400,20 +1430,36 @@ input[type="radio"] {
     
     /* Pulsante hamburger */
     .mobile-menu-btn {
-        position: fixed;
-        top: 1rem;
-        left: 1rem;
-        z-index: 1001;
-        background: var(--primary-color);
-        color: white;
-        border: none;
-        border-radius: 8px;
-        padding: 0.75rem;
-        font-size: 1.5rem;
-        cursor: pointer;
-        box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-        display: block;
+    position: fixed;
+    top: 1rem;
+    left: 1rem;
+    z-index: 1001;
+    background: var(--primary-color);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+    font-size: 1.5rem;
+    cursor: pointer;
+    display: none; /* Nascosto di default */
+}
+
+/* Mostra solo su mobile */
+@media screen and (max-width: 768px) {
+    .mobile-menu-btn {
+        display: flex !important;
+        align-items: center;
+        justify-content: center;
     }
+}
+
+/* Assicurati che sia nascosto su desktop */
+@media screen and (min-width: 769px) {
+    .mobile-menu-btn {
+        display: none !important;
+    }
+}
+
     
     /* Main content occupa tutto lo schermo */
     .main-content {
@@ -1935,4 +1981,21 @@ body {
         align-items: center;
         justify-content: center;
     }
+}
+.sidebar-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.7);
+    z-index: 999;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.sidebar-overlay.active {
+    display: block;
+    opacity: 1;
 }

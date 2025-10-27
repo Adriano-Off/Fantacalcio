@@ -166,6 +166,30 @@ function showWelcomeMessage() {
 
 
 function setupEventListeners() {
+    // Mobile menu
+    const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+    if (mobileMenuBtn) {
+        mobileMenuBtn.addEventListener('click', toggleMobileMenu);
+    }
+    
+    // Calcola punteggi - USA IL NOME CORRETTO
+    const calcBtn = document.getElementById('calcPunteggi');
+    if (calcBtn) {
+        calcBtn.addEventListener('click', calcolaPunteggi);  // ✅ SENZA "handle"
+    }
+    
+    // Salva dati
+    const saveBtn = document.getElementById('salvaDati');
+    if (saveBtn) {
+        saveBtn.addEventListener('click', salvaDati);
+    }
+    
+    // Reset
+    const resetBtn = document.getElementById('resetData');
+    if (resetBtn) {
+        resetBtn.addEventListener('click', resetAllData);
+    }
+    
     // Navigation
     document.querySelectorAll('.nav-item').forEach(item => {
         item.addEventListener('click', function(e) {
@@ -173,61 +197,65 @@ function setupEventListeners() {
             const section = this.dataset.section;
             showSection(section);
             
-            // Update active state
-            document.querySelectorAll('.nav-item').forEach(nav => nav.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
             this.classList.add('active');
-            document.getElementById('searchPlayer').addEventListener('input', function(e) {
-    filterRosa(e.target.value);
-});
+            
+            // Chiudi menu mobile
+            if (window.innerWidth <= 768) {
+                const sidebar = document.getElementById('sidebar');
+                if (sidebar?.classList.contains('active')) {
+                    toggleMobileMenu();
+                }
+            }
         });
     });
     
-    // Menu toggle
-    document.getElementById('menuToggle').addEventListener('click', function() {
-        document.getElementById('sidebar').classList.toggle('active');
-    });
-    
-    // Calcola punteggi
-    document.getElementById('calcPunteggi').addEventListener('click', calcolaPunteggi);
-    
-    // Salva dati
-    document.getElementById('salvaDati').addEventListener('click', salvaDati);
-    
-    // Search
-    document.getElementById('searchPlayer').addEventListener('input', function(e) {
-        filterRosa(e.target.value);
-    });
-    
-    // Tabs
-    document.querySelectorAll('.tab-btn').forEach(btn => {
-        btn.addEventListener('click', function() {
-            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-            this.classList.add('active');
-            const role = this.dataset.role;
-            filterByRole(role);
+    // Import stats
+    const importStats = document.getElementById('importStats');
+    if (importStats) {
+        importStats.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) handleStatsImport(file);
         });
-    });
+    }
+    
+    // Import classifica
+    const importClassifica = document.getElementById('importClassifica');
+    if (importClassifica) {
+        importClassifica.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) handleClassificaImport(file);
+        });
+    }
+    
+    // Search player
+    const searchInput = document.getElementById('searchPlayer');
+    if (searchInput) {
+        searchInput.addEventListener('input', function(e) {
+            filterRosaTable(e.target.value);
+        });
+    }
     
     // Modal close
-    document.querySelector('.close-modal').addEventListener('click', closeModal);
-    document.getElementById('playerModal').addEventListener('click', function(e) {
-        if (e.target === this) closeModal();
+    const closeModal = document.querySelector('.close-modal');
+    if (closeModal) {
+        closeModal.addEventListener('click', function() {
+            document.getElementById('playerModal').style.display = 'none';
+        });
+    }
+    
+    // Click outside modal
+    window.addEventListener('click', function(e) {
+        const modal = document.getElementById('playerModal');
+        if (e.target === modal) {
+            modal.style.display = 'none';
+        }
     });
     
-    // File imports
-    document.getElementById('importStats').addEventListener('change', handleStatsImport);
-    document.getElementById('importClassifica').addEventListener('change', handleClassificaImport);
-
-    document.getElementById('resetData').addEventListener('click', function() {
-    if (confirm('Cancellare tutti i dati salvati localmente?')) {
-        localStorage.removeItem('fantasoccerData');
-        rosa = [];
-        renderDashboard();
-        renderRosa();
-        showNotification('Dati locali cancellati', 'success');
-    }
-});
+    console.log('✅ Event listeners configurati');
 }
+
+
 
 function showSection(sectionName) {
     console.log('📄 Cambio sezione:', sectionName);
@@ -1355,6 +1383,33 @@ async function salvaDati() {
     }
     
     showNotification('Dati salvati con successo!', 'success');
+}
+
+function resetAllData() {
+    // Conferma prima di cancellare
+    const confirm1 = confirm('⚠️ ATTENZIONE! Vuoi cancellare TUTTI i dati?\n\nQuesto eliminerà:\n- Rosa completa\n- Classifica personalizzata\n- Statistiche\n\nQuesta azione è IRREVERSIBILE!');
+    
+    if (!confirm1) return;
+    
+    // Seconda conferma per sicurezza
+    const confirm2 = confirm('🔴 Sei VERAMENTE sicuro?\n\nPremi OK per cancellare tutto definitivamente.');
+    
+    if (!confirm2) return;
+    
+    // Cancella localStorage
+    localStorage.removeItem('fantacalcio_rosa');
+    localStorage.removeItem('fantacalcio_classifica');
+    localStorage.removeItem('fantacalcio_setup_completed');
+    
+    // Oppure cancella TUTTO:
+    // localStorage.clear();
+    
+    showNotification('🗑️ Dati cancellati! Ricarico...', 'info');
+    
+    // Ricarica dopo 1 secondo
+    setTimeout(() => {
+        location.reload();
+    }, 1000);
 }
 
 
@@ -3329,24 +3384,44 @@ function toggleMobileMenu() {
     const overlay = document.getElementById('sidebarOverlay');
     const btn = document.getElementById('mobileMenuBtn');
     
-    if (!sidebar || !overlay || !btn) {
-        console.error('Elementi menu mobile non trovati!');
+    if (!sidebar) {
+        console.error('❌ Sidebar non trovata!');
         return;
     }
     
+    // Toggle classi
     sidebar.classList.toggle('active');
-    overlay.classList.toggle('active');
+    if (overlay) overlay.classList.toggle('active');
     
     // Cambia icona
-    const icon = btn.querySelector('i');
-    if (sidebar.classList.contains('active')) {
-        icon.className = 'fas fa-times';
-        document.body.style.overflow = 'hidden';
-    } else {
-        icon.className = 'fas fa-bars';
-        document.body.style.overflow = 'auto';
+    const icon = btn?.querySelector('i');
+    if (icon) {
+        if (sidebar.classList.contains('active')) {
+            icon.className = 'fas fa-times';
+            document.body.style.overflow = 'hidden';
+        } else {
+            icon.className = 'fas fa-bars';
+            document.body.style.overflow = 'auto';
+        }
     }
+    
+    console.log('Menu toggled:', sidebar.classList.contains('active'));
 }
+
+// Chiudi menu quando clicchi su una voce
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.nav-item').forEach(item => {
+        item.addEventListener('click', function() {
+            if (window.innerWidth <= 768) {
+                const sidebar = document.getElementById('sidebar');
+                if (sidebar?.classList.contains('active')) {
+                    toggleMobileMenu();
+                }
+            }
+        });
+    });
+});
+
 
 // Chiudi menu quando si clicca su una voce
 document.addEventListener('DOMContentLoaded', function() {
@@ -3388,3 +3463,7 @@ window.addEventListener('resize', function() {
         if (icon) icon.className = 'fas fa-bars';
     }
 });
+// ============================================
+// MOBILE MENU TOGGLE
+// ============================================
+
