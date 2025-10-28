@@ -577,24 +577,34 @@ async function initializeApp() {
     console.log('📊 Rosa length:', rosa.length); // ⬅️ DEBUG
 
     // ✅ Mostra wizard SOLO se rosa vuota
-    if (rosa.length === 0) {
-        console.log('👋 Primo accesso - mostra wizard');
-
-        // Nascondi main-content
-        const mainContent = document.querySelector('.main-content');
-        if (mainContent) mainContent.style.display = 'none';
-
-        // Mostra wizard
-        const wizard = document.getElementById('firstTimeWizard');
-        if (wizard) {
-            wizard.style.display = 'flex'; // ⬅️ CAMBIATO DA 'block' A 'flex'
-            console.log('✅ Wizard mostrato');
-        } else {
-            console.error('❌ Wizard non trovato nel DOM!');
-        }
-
-        return;
+    // ✅ Mostra wizard SOLO se rosa vuota
+if (rosa.length === 0) {
+    console.log('👋 Primo accesso - mostra wizard');
+    
+    const wizard = document.getElementById('firstTimeWizard');
+    const mainContent = document.querySelector('.main-content');
+    
+    if (wizard) {
+        // ✅ Forza stili CSS mancanti
+        wizard.style.position = 'fixed';
+        wizard.style.top = '0';
+        wizard.style.left = '0';
+        wizard.style.width = '100%';
+        wizard.style.height = '100%';
+        wizard.style.zIndex = '10000';
+        wizard.style.display = 'flex';
+        wizard.style.alignItems = 'center';
+        wizard.style.justifyContent = 'center';
+        wizard.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+        wizard.style.padding = '2rem';
+        
+        console.log('✅ Wizard mostrato');
     }
+    
+    if (mainContent) mainContent.style.display = 'none';
+    
+    return;
+}
 
     // Altrimenti renderizza normalmente
     console.log('✅ Dati esistenti - carica interfaccia');
