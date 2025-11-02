@@ -10,12 +10,10 @@
 </head>
 
 <body>
-
-    <body>
         <!-- ✅ WIZARD PRIMO ACCESSO -->
         <div id="firstTimeWizard" class="wizard-container" style="display: none;">
             <div class="wizard-content">
-                <h1><i class="fas fa-futbol"></i> Benvenuto nel Gestionale Fantacalcio!</h1>
+                <h2><i class="fas fa-futbol"></i> Benvenuto nel Gestionale Fantacalcio!</h2>
                 <p>Come vuoi iniziare?</p>
 
                 <div class="wizard-options">
@@ -126,7 +124,7 @@
 
             <!-- Dashboard Section -->
             <section id="dashboard" class="content-section active">
-                <h1>Dashboard</h1>
+                <h2>Dashboard</h2>
 
                 <!-- Stats Cards -->
 <div class="stats-grid">
@@ -194,7 +192,7 @@
 
             <!-- Rosa Completa Section -->
             <section id="rosa" class="content-section">
-                <h1>Rosa Completa</h1>
+                <h2>Rosa Completa</h2>
                 <!-- Controlli superiori -->
                 <div class="card" style="margin-bottom: 1rem;">
                     <div class="card-body" style="padding: 1rem;">
@@ -238,7 +236,7 @@
 
             <!-- Migliore Formazione Section -->
             <section id="formazione" class="content-section">
-                <h1>Migliore Formazione</h1>
+                <h2>Migliore Formazione</h2>
                 <div class="formation-container">
                     <div class="campo-calcio">
                         <div class="formation-line">
@@ -258,12 +256,13 @@
             </section>
 
             <section id="topGiocatori" class="content-section">
+                <h2>Top Giocatori per Ruolo</h2>
                 <!-- Il contenuto viene generato da JavaScript -->
             </section>
 
             <!-- Classifica Section -->
             <section id="classifica" class="content-section">
-                <h1>Classifica Forza Serie A</h1>
+                <h2>Classifica Forza Serie A</h2>
                 <div class="card">
                     <div class="card-body">
                         <div class="table-responsive">
@@ -287,7 +286,7 @@
             <!-- Import Section -->
             <!-- Import Section - MIGLIORATA -->
             <section id="import" class="content-section">
-                <h1>Importa Dati</h1>
+                <h2>Importa Dati</h2>
 
                 <!-- Info Box -->
                 <div class="card" style="margin-bottom: 1.5rem; background: #e0f2fe;">
@@ -349,7 +348,7 @@
             <!-- Gestione Section -->
             <section id="gestione" class="content-section">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
-                    <h1 style="margin: 0;">Gestione Rosa</h1>
+                    <h2 style="margin: 0;">Gestione Rosa</h2>
                     <button class="btn btn-success" onclick="esportaGiocatoriCSV(rosa)">
                         <i class="fas fa-download"></i> Esporta Statistiche CSV
                     </button>
@@ -695,7 +694,7 @@
         <div id="playerModal" class="modal">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h2 id="modalPlayerName"></h2>
+                    <div id="modalPlayerName" style="font-size: 1.5rem; font-weight: bold;"></div>
                     <button class="close-modal">&times;</button>
                 </div>
                 <div class="modal-body" id="modalPlayerBody"></div>
