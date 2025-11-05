@@ -475,26 +475,26 @@ const calendario = [
 
 let rosa = [];
 let classifica = [
-    { nome: "Milan", punti: 20 },
-    { nome: "Napoli", punti: 19 },
-    { nome: "Inter", punti: 18 },
-    { nome: "Roma", punti: 17 },
+    { nome: "Inter", punti: 20 },
+    { nome: "Milan", punti: 19 },
+    { nome: "Roma", punti: 18 },
+    { nome: "Napoli", punti: 17 },
     { nome: "Juventus", punti: 16 },
-    { nome: "Atalanta", punti: 15 },
+    { nome: "Lazio", punti: 15 },
     { nome: "Bologna", punti: 14 },
-    { nome: "Lazio", punti: 13 },
+    { nome: "Atalanta", punti: 13 },
     { nome: "Como", punti: 12 },
-    { nome: "Fiorentina", punti: 11 },
+    { nome: "Udinese", punti: 11 },
     { nome: "Torino", punti: 10 },
-    { nome: "Udinese", punti: 9 },
-    { nome: "Genoa", punti: 8 },
+    { nome: "Cremonese", punti: 9 },
+    { nome: "Sassuolo", punti: 8 },
     { nome: "Cagliari", punti: 7 },
-    { nome: "Parma", punti: 6 },
-    { nome: "Sassuolo", punti: 5 },
-    { nome: "Lecce", punti: 4 },
-    { nome: "Cremonese", punti: 3 },
-    { nome: "Verona", punti: 2 },
-    { nome: "Pisa", punti: 1 }
+    { nome: "Lecce", punti: 6 },
+    { nome: "Fiorentina", punti: 5 },
+    { nome: "Parma", punti: 4 },
+    { nome: "Genoa", punti: 3 },
+    { nome: "Pisa", punti: 2 },
+    { nome: "Verona", punti: 1 }
 ];
 
 const ruoliMap = ["Portiere", "Difensore", "Centrocampista", "Attaccante"];
