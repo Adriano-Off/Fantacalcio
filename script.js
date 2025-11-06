@@ -499,7 +499,69 @@ let classifica = [
 
 const ruoliMap = ["Portiere", "Difensore", "Centrocampista", "Attaccante"];
 
+const APP_VERSION='1.1.0'
+
+// Force update the script URL
+const script = document.querySelector('script[src*="script.js"]');
+if (script) {
+  console.log('Script attuale:', script.src);
+}
+
+// Se vedi ?v=4, cambia in ?v=5 nell'HTML e ricarica
+
+
+function checkVersion() {
+    const savedVersion = localStorage.getItem('appVersion');
+    if (savedVersion !== APP_VERSION) {
+        console.log('🔄 Nuova versione rilevata, pulizia cache...');
+        
+        // CANCELLA TUTTO il localStorage
+        localStorage.clear();
+        
+        // Salva nuova versione
+        localStorage.setItem('appVersion', APP_VERSION);
+        
+        // Ricarica la pagina
+        location.reload();
+        return false;
+    }
+    return true;
+}
+
+// Chiama ALL'INIZIO prima di loadData()
+if (!checkVersion()) {
+    throw new Error('App reloading with clean cache...');
+}
+
 // Inizializzazione
+if ('caches' in window) {
+    caches.keys().then(names => {
+        names.forEach(name => caches.delete(name));
+    });
+}
+
+// Aggiungi versione ai file JS per forza refresh
+const version = Date.now();
+document.querySelectorAll('script').forEach(s => {
+    if (s.src) s.src += '?v=' + version;
+});
+
+function loadClassifica() {
+    const saved = localStorage.getItem('fantacalcioclassifica');
+    if (saved) {
+        try {
+            classifica = JSON.parse(saved);
+            console.log('Classifica caricata da localStorage:', classifica);
+        } catch (e) {
+            console.error('Errore caricamento classifica:', e);
+        }
+    } else {
+        console.log('Usando classifica predefinita');
+    }
+}
+
+// Chiama SEMPRE all'inizio
+loadClassifica();
 
 
 function checkScoreOrigin() {
@@ -571,6 +633,7 @@ async function initializeApp() {
     console.log('🚀 Inizializzazione app...');
 
     await loadData();
+    loadClassifica();
     if (rosa.length > 0) {
         aggiornaAvversariAutomatico(); // ⬅️ AGGIUNGI QUESTA RIGA
     }
@@ -846,26 +909,26 @@ async function loadData() {
         } else {
             // Classifica predefinita
             classifica = [
-                { nome: "Milan", punti: 20 },
-                { nome: "Napoli", punti: 19 },
-                { nome: "Inter", punti: 18 },
-                { nome: "Roma", punti: 17 },
+                { nome: "Inter", punti: 20 },
+                { nome: "Milan", punti: 19 },
+                { nome: "Roma", punti: 18 },
+                { nome: "Napoli", punti: 17 },
                 { nome: "Juventus", punti: 16 },
-                { nome: "Atalanta", punti: 15 },
+                { nome: "Lazio", punti: 15 },
                 { nome: "Bologna", punti: 14 },
-                { nome: "Lazio", punti: 13 },
+                { nome: "Atalanta", punti: 13 },
                 { nome: "Como", punti: 12 },
-                { nome: "Fiorentina", punti: 11 },
+                { nome: "Udinese", punti: 11 },
                 { nome: "Torino", punti: 10 },
-                { nome: "Udinese", punti: 9 },
-                { nome: "Genoa", punti: 8 },
+                { nome: "Cremonese", punti: 9 },
+                { nome: "Sassuolo", punti: 8 },
                 { nome: "Cagliari", punti: 7 },
-                { nome: "Parma", punti: 6 },
-                { nome: "Sassuolo", punti: 5 },
-                { nome: "Lecce", punti: 4 },
-                { nome: "Cremonese", punti: 3 },
-                { nome: "Verona", punti: 2 },
-                { nome: "Pisa", punti: 1 }
+                { nome: "Lecce", punti: 6 },
+                { nome: "Fiorentina", punti: 5 },
+                { nome: "Parma", punti: 4 },
+                { nome: "Genoa", punti: 3 },
+                { nome: "Pisa", punti: 2 },
+                { nome: "Verona", punti: 1 }
             ];
             localStorage.setItem('fantacalcio_classifica', JSON.stringify(classifica));
             console.log('✅ Classifica predefinita creata');
@@ -929,25 +992,6 @@ function showLoadJsonPrompt() {
         reader.readAsText(file);
     });
 }
-
-
-async function loadClassifica() {
-    if (USE_JSON_FILES) {
-        try {
-            const response = await fetch('classifica.json?' + new Date().getTime());
-            if (response.ok) {
-                const data = await response.json();
-                classifica = data.teams;
-                console.log('✓ Classifica caricata da classifica.json (programma C)');
-                return;
-            }
-        } catch (error) {
-            console.log('⚠ File classifica.json non trovato, uso default');
-        }
-    }
-    // Usa classifica di default già definita
-}
-
 
 function generateSampleData() {
     // Array vuoto - forza l'uso di file JSON o localStorage
@@ -3317,26 +3361,26 @@ function renderTopGiocatori() {
 // ============================================
 
 const DEFAULT_CLASSIFICA = [
-    { nome: "Milan", punti: 20 },
-    { nome: "Napoli", punti: 19 },
-    { nome: "Inter", punti: 18 },
-    { nome: "Roma", punti: 17 },
+    { nome: "Inter", punti: 20 },
+    { nome: "Milan", punti: 19 },
+    { nome: "Roma", punti: 18 },
+    { nome: "Napoli", punti: 17 },
     { nome: "Juventus", punti: 16 },
-    { nome: "Atalanta", punti: 15 },
+    { nome: "Lazio", punti: 15 },
     { nome: "Bologna", punti: 14 },
-    { nome: "Lazio", punti: 13 },
+    { nome: "Atalanta", punti: 13 },
     { nome: "Como", punti: 12 },
-    { nome: "Fiorentina", punti: 11 },
+    { nome: "Udinese", punti: 11 },
     { nome: "Torino", punti: 10 },
-    { nome: "Udinese", punti: 9 },
-    { nome: "Genoa", punti: 8 },
+    { nome: "Cremonese", punti: 9 },
+    { nome: "Sassuolo", punti: 8 },
     { nome: "Cagliari", punti: 7 },
-    { nome: "Parma", punti: 6 },
-    { nome: "Sassuolo", punti: 5 },
-    { nome: "Lecce", punti: 4 },
-    { nome: "Cremonese", punti: 3 },
-    { nome: "Verona", punti: 2 },
-    { nome: "Pisa", punti: 1 }
+    { nome: "Lecce", punti: 6 },
+    { nome: "Fiorentina", punti: 5 },
+    { nome: "Parma", punti: 4 },
+    { nome: "Genoa", punti: 3 },
+    { nome: "Pisa", punti: 2 },
+    { nome: "Verona", punti: 1 }
 ];
 
 function loadGestioneEditor() {
