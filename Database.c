@@ -235,7 +235,7 @@ void importa_classifica_da_csv(const char *filename) {
 
 // NUOVO: Export JSON per interfaccia web
 void esporta_json_rosa(Giocatore rosa[]) {
-    FILE *file = fopen("rosa.json", "w");
+    FILE *file = fopen("www/rosa.json", "w");
     if(file == NULL) {
         printf("Errore nell'apertura di rosa.json!\n");
         return;
@@ -343,7 +343,7 @@ ordina_giocatori_puntatori(attaccanti, num_a);
     }
     
     // Esporta in JSON
-    FILE *file = fopen("formazione.json", "w");
+    FILE *file = fopen("www/formazione.json", "w");
     if(file == NULL) {
         printf("Errore nell'esportazione formazione JSON!\n");
         return;
@@ -383,7 +383,7 @@ ordina_giocatori_puntatori(attaccanti, num_a);
 
 
 void esporta_json_classifica() {
-    FILE *file = fopen("classifica.json", "w");
+    FILE *file = fopen("www/classifica.json", "w");
     if(file == NULL) {
         printf("Errore nell'esportazione JSON!\n");
         return;
@@ -411,7 +411,7 @@ void esporta_json_classifica() {
 // Aggiungi questa funzione in Database.c dopo esporta_json_rosa()
 
 void importa_json_modifiche(Giocatore rosa[]) {
-    FILE *file = fopen("rosa.json", "r");
+    FILE *file = fopen("www/rosa.json", "r");
     if(file == NULL) {
         printf("❌ File rosa.json non trovato!\n");
         return;
