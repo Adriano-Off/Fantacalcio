@@ -1,0 +1,7 @@
+node_modules/
+android/
+dist/
+.vscode/
+*.exe
+*.o
+*.obj
